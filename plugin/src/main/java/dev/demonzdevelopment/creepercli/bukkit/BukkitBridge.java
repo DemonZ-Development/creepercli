@@ -31,6 +31,8 @@ public final class BukkitBridge {
         CompletableFuture<ExecResult> future = new CompletableFuture<>();
         CapturingSender sender = new CapturingSender();
         long mark = plugin.logs().mark();
+        java.io.File logFile = new java.io.File(plugin.cfg().serverRoot().toFile(), "logs/latest.log");
+        long fileOffset = logFile.isFile() ? logFile.length() : -1;
         long start = System.nanoTime();
         Bukkit.getScheduler().runTask(plugin, () -> {
             boolean ok;
@@ -46,6 +48,17 @@ public final class BukkitBridge {
                 long elapsed = (System.nanoTime() - start) / 1_000_000;
                 List<String> all = new ArrayList<>(sender.lines());
                 all.addAll(plugin.logs().since(mark));
+                if (fileOffset >= 0) {
+                    try (java.io.RandomAccessFile raf = new java.io.RandomAccessFile(logFile, "r")) {
+                        raf.seek(fileOffset);
+                        String line;
+                        while ((line = raf.readLine()) != null) {
+                            if (!line.isBlank()) all.add(line);
+                        }
+                    } catch (IOException e) {
+                        plugin.getLogger().warning("exec log capture failed: " + e.getMessage());
+                    }
+                }
                 future.complete(new ExecResult(okFinal, all, elapsed));
             }, 6);
         });
