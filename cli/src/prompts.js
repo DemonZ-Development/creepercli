@@ -16,6 +16,14 @@ function readSecret(prompt) {
   return new Promise((resolve, reject) => {
     const input = process.stdin;
     const output = process.stdout;
+    if (!input.isTTY) {
+      const rl = readline.createInterface({ input, output });
+      rl.question(prompt, (answer) => {
+        rl.close();
+        resolve(answer.trim());
+      });
+      return;
+    }
     input.setRawMode(true);
     input.resume();
     output.write(prompt);

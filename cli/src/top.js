@@ -8,8 +8,10 @@ function sleep(ms) {
 }
 
 async function runTop(client, refreshMs) {
-  readline.emitKeypressEvents(process.stdin);
-  process.stdin.setRawMode(true);
+  if (process.stdin.isTTY) {
+    readline.emitKeypressEvents(process.stdin);
+    process.stdin.setRawMode(true);
+  }
   let stopped = false;
   const onKey = (str, key) => {
     if (key.name === 'q' || key.name === 'escape' || (key.ctrl && key.name === 'c')) stopped = true;
@@ -28,7 +30,7 @@ async function runTop(client, refreshMs) {
     }
   } finally {
     process.stdin.removeListener('keypress', onKey);
-    process.stdin.setRawMode(false);
+    if (process.stdin.isTTY) process.stdin.setRawMode(false);
   }
 }
 
