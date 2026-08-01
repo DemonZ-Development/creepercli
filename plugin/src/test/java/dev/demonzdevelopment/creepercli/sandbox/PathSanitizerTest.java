@@ -63,7 +63,7 @@ class PathSanitizerTest {
     }
 
     @Test
-    void rejectsDeepTraversalFromSubdir() {
+    void rejectsDeepTraversalFromSubdir() throws Exception {
         assertThrows(PathEscapeException.class, () -> sanitizer.resolve("plugins/sub", "..\\..\\.."));
         assertTrue(sanitizer.isInside(sanitizer.resolve("plugins", "..")));
     }
