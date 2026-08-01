@@ -59,7 +59,9 @@ public final class PluginConfig {
         String s = c.getString("sandbox.server-root", "");
         Path root;
         if (s == null || s.isBlank()) {
-            root = plugin.getServer().getWorldContainer().getParentFile().toPath();
+            Path data = plugin.getDataFolder().toPath().toAbsolutePath().normalize();
+            Path plugins = data.getParent();
+            root = plugins == null || plugins.getParent() == null ? data : plugins.getParent();
         } else {
             root = Path.of(s);
         }
