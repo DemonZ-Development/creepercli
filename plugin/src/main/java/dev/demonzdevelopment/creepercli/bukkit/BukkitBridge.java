@@ -46,6 +46,7 @@ public final class BukkitBridge {
                 long elapsed = (System.nanoTime() - start) / 1_000_000;
                 List<String> all = new ArrayList<>(sender.lines());
                 all.addAll(plugin.logs().since(mark));
+                plugin.getLogger().info("[exec-dbg] captured " + all.size() + " lines, mark=" + mark);
                 future.complete(new ExecResult(okFinal, all, elapsed));
             }, 2);
         });

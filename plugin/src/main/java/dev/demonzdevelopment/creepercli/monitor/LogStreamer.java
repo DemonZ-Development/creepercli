@@ -46,10 +46,12 @@ public final class LogStreamer {
 
     public void attach() {
         Bukkit.getLogger().addHandler(handler);
+        java.util.logging.Logger.getLogger("").addHandler(handler);
     }
 
     public void detach() {
         Bukkit.getLogger().removeHandler(handler);
+        java.util.logging.Logger.getLogger("").removeHandler(handler);
     }
 
     private void onPublish(LogRecord record) {
