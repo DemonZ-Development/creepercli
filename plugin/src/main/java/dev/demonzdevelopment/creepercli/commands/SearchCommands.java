@@ -116,15 +116,14 @@ public final class SearchCommands {
             throw new CreeperError(Protocol.ERR_NOT_DIRECTORY, "Not a directory: " + path);
         }
         PathMatcher matcher;
-        PathMatcher shallow = null;
         try {
             matcher = FileSystems.getDefault().getPathMatcher("glob:" + glob);
-            if (glob.startsWith("**/")) {
-                shallow = FileSystems.getDefault().getPathMatcher("glob:" + glob.substring(3));
-            }
         } catch (IllegalArgumentException e) {
             throw new CreeperError(Protocol.ERR_INVALID_PARAMS, "Invalid glob: " + e.getMessage());
         }
+        final PathMatcher shallow = glob.startsWith("**/")
+                ? FileSystems.getDefault().getPathMatcher("glob:" + glob.substring(3))
+                : null;
 
         JsonArray results = new JsonArray();
         boolean[] truncated = {false};
