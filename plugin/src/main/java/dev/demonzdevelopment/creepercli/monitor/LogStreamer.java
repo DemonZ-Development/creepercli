@@ -8,6 +8,7 @@ import dev.demonzdevelopment.creepercli.net.ClientConnection;
 import org.bukkit.Bukkit;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.ArrayDeque;
 import java.util.Date;
 import java.util.List;
@@ -37,6 +38,7 @@ public final class LogStreamer {
     private final ArrayDeque<String> ring = new ArrayDeque<>();
     private final Map<ClientConnection, Pattern> subscribers = new ConcurrentHashMap<>();
     private final ThreadLocal<SimpleDateFormat> timeFormat = ThreadLocal.withInitial(() -> new SimpleDateFormat("HH:mm:ss"));
+    private long lineCounter = 0;
 
     public LogStreamer(CreeperCLIPlugin plugin) {
         this.plugin = plugin;
@@ -56,6 +58,7 @@ public final class LogStreamer {
         String display = "[" + stamp + "] [" + record.getLevel().getName() + "] " + message;
         synchronized (ring) {
             ring.addLast(display);
+            lineCounter++;
             while (ring.size() > plugin.cfg().logBufferLines()) {
                 ring.removeFirst();
             }
@@ -92,6 +95,24 @@ public final class LogStreamer {
     public List<String> buffer() {
         synchronized (ring) {
             return List.copyOf(ring);
+        }
+    }
+
+    public long mark() {
+        synchronized (ring) {
+            return lineCounter;
+        }
+    }
+
+    public List<String> since(long mark) {
+        synchronized (ring) {
+            int wanted = (int) Math.min(ring.size(), lineCounter - mark);
+            if (wanted <= 0) return List.of();
+            Object[] arr = ring.toArray();
+            int from = arr.length - wanted;
+            List<String> out = new ArrayList<>(wanted);
+            for (int i = from; i < arr.length; i++) out.add((String) arr[i]);
+            return out;
         }
     }
 

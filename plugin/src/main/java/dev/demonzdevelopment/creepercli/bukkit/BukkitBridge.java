@@ -30,6 +30,7 @@ public final class BukkitBridge {
     public CompletableFuture<ExecResult> exec(String command, int timeoutSeconds) {
         CompletableFuture<ExecResult> future = new CompletableFuture<>();
         CapturingSender sender = new CapturingSender();
+        long mark = plugin.logs().mark();
         long start = System.nanoTime();
         Bukkit.getScheduler().runTask(plugin, () -> {
             boolean ok;
@@ -41,7 +42,9 @@ public final class BukkitBridge {
                 return;
             }
             long elapsed = (System.nanoTime() - start) / 1_000_000;
-            future.complete(new ExecResult(ok, sender.lines(), elapsed));
+            List<String> all = new ArrayList<>(sender.lines());
+            all.addAll(plugin.logs().since(mark));
+            future.complete(new ExecResult(ok, all, elapsed));
         });
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (!future.isDone()) {
@@ -57,7 +60,6 @@ public final class BukkitBridge {
 
         private CommandSender asSender() {
             InvocationHandler handler = (Object proxy, Method method, Object[] args) -> {
-                plugin.getLogger().info("[execproxy] call: " + method.getName());
                 switch (method.getName()) {
                     case "sendMessage" -> {
                         if (args == null) {
