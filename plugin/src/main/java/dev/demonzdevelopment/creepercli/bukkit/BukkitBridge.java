@@ -52,7 +52,7 @@ public final class BukkitBridge {
         return future;
     }
 
-    private static final class CapturingSender {
+    private final class CapturingSender {
         private final List<String> lines = new ArrayList<>();
 
         private CommandSender asSender() {
