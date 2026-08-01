@@ -116,8 +116,12 @@ public final class SearchCommands {
             throw new CreeperError(Protocol.ERR_NOT_DIRECTORY, "Not a directory: " + path);
         }
         PathMatcher matcher;
+        PathMatcher shallow = null;
         try {
             matcher = FileSystems.getDefault().getPathMatcher("glob:" + glob);
+            if (glob.startsWith("**/")) {
+                shallow = FileSystems.getDefault().getPathMatcher("glob:" + glob.substring(3));
+            }
         } catch (IllegalArgumentException e) {
             throw new CreeperError(Protocol.ERR_INVALID_PARAMS, "Invalid glob: " + e.getMessage());
         }
@@ -128,7 +132,8 @@ public final class SearchCommands {
             walk.filter(f -> Files.isRegularFile(f, LinkOption.NOFOLLOW_LINKS)).forEach(f -> {
                 if (truncated[0]) return;
                 Path rel = p.relativize(f);
-                if (matcher.matches(rel) || matcher.matches(rel.getFileName())) {
+                if (matcher.matches(rel) || matcher.matches(rel.getFileName())
+                        || (shallow != null && shallow.matches(rel.getFileName()))) {
                     results.add(plugin.sanitizer().toJailPath(f));
                     if (results.size() >= maxResults) truncated[0] = true;
                 }

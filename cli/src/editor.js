@@ -34,7 +34,7 @@ async function editFile(ctx, remotePath) {
 
     const editor = ctx.cfg.editor;
     await new Promise((resolve, reject) => {
-      const child = spawn(editor, [tmpFile], { stdio: 'inherit', shell: process.platform === 'win32' });
+      const child = spawn(editor, [tmpFile], { stdio: 'inherit', shell: true });
       child.on('error', (err) => reject(new Error(`Could not start editor "${editor}": ${err.message}`)));
       child.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`Editor exited with code ${code}`))));
     });
