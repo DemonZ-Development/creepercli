@@ -54,7 +54,7 @@ public final class PathSanitizer {
         }
     }
 
-    private Path resolveReal(Path p) throws IOException {
+    private Path resolveReal(Path p) throws IOException, PathEscapeException {
         Path existing = nearestExisting(p);
         Path real = existing.toRealPath();
         if (!isInside(real)) {

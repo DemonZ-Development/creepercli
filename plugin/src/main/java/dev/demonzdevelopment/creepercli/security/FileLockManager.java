@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class FileLockManager {
-    private record Lock(String token, String user, long expiresAt) {
+    public record Lock(String token, String user, long expiresAt) {
     }
 
     private final long ttlMillis;
