@@ -55,9 +55,13 @@ public final class ClientConnection implements Runnable {
         return socket.getInetAddress();
     }
 
-    public Path resolve(String requested) throws PathEscapeException {
+    public Path resolve(String requested) throws CreeperError {
         String cwd = session == null ? "" : session.cwd;
-        return plugin.sanitizer().resolve(cwd, requested);
+        try {
+            return plugin.sanitizer().resolve(cwd, requested);
+        } catch (PathEscapeException e) {
+            throw new CreeperError(Protocol.ERR_PATH_ESCAPE, e.getMessage());
+        }
     }
 
     public String jailPath(Path p) {
