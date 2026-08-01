@@ -44,35 +44,36 @@ async function main(argv) {
 
   const client = await connect(cfg);
   const ctx = { client, cfg, username: null, cwd: '/', exit: false, flags };
+  let creds = session.load(cfg.host, cfg.port);
+  if (creds) {
+    ctx.username = creds.username;
+    try {
+      const resume = await client.request('auth.resume', { token: creds.token }, { timeoutMs: 15000 });
+      ctx.username = resume.username;
+      ctx.cwd = resume.cwd || '/';
+    } catch (err) {
+      if (err.code === 'E_SESSION_EXPIRED' || err.code === 'E_UNAUTHORIZED') {
+        session.clear();
+        creds = null;
+        console.log('Session expired, please log in.');
+      } else {
+        throw err;
+      }
+    }
+  }
+  if (!creds) {
+    if (!process.stdout.isTTY) {
+      console.error('Not authenticated and stdin is not a TTY. Run "creepercli login" first.');
+      client.close();
+      return 1;
+    }
+    await doLogin(ctx);
+  }
+  if (!cmd || cmd === 'repl' || cmd === 'shell') {
+    startRepl(ctx);
+    return 0;
+  }
   try {
-    let creds = session.load(cfg.host, cfg.port);
-    if (creds) {
-      ctx.username = creds.username;
-      try {
-        const resume = await client.request('auth.resume', { token: creds.token }, { timeoutMs: 15000 });
-        ctx.username = resume.username;
-        ctx.cwd = resume.cwd || '/';
-      } catch (err) {
-        if (err.code === 'E_SESSION_EXPIRED' || err.code === 'E_UNAUTHORIZED') {
-          session.clear();
-          creds = null;
-          console.log('Session expired, please log in.');
-        } else {
-          throw err;
-        }
-      }
-    }
-    if (!creds) {
-      if (!process.stdout.isTTY) {
-        console.error('Not authenticated and stdin is not a TTY. Run "creepercli login" first.');
-        return 1;
-      }
-      await doLogin(ctx);
-    }
-    if (!cmd || cmd === 'repl' || cmd === 'shell') {
-      startRepl(ctx);
-      return undefined;
-    }
     return await runCommand(ctx, args.join(' '));
   } finally {
     client.close();

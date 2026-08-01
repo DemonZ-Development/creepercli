@@ -77,7 +77,7 @@ public final class PluginConfig {
     }
 
     public double commandsPerSecond() {
-        return c.getDouble("limits.commands-per-second", 10);
+        return c.getDouble("limits.commands-per-second", 30);
     }
 
     public int fileLockTtlMillis() {
