@@ -18,7 +18,7 @@ Initial release.
 - `exec` with default-deny allowlist, main-thread scheduling, output capture, 30s timeout
 - Live console streaming via `java.util.logging.Handler` on `Bukkit.getLogger()` with --grep filter
 - stats / tps / top monitoring
-- Token-bucket command limiter (10/s per session)
+- Token-bucket command limiter (30/s per session)
 - Append-only audit log with 10MB rotation
 - In-game admin commands: /creepercli user add|remove|list, status, reload
 

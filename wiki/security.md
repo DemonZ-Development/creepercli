@@ -122,11 +122,15 @@ brute-force patterns even when fail2ban hasn't triggered).
 7. For automation, raise `limits.commands-per-second` deliberately — don't lower the session
    timeout below what your scripts need.
 
-## On the roadmap
+## v1.1.0 roadmap (deferred)
+
+These are scoped for the next release and are intentionally **not** in v1.0.0. v1.0.0 is
+complete and tested as documented; the items below add defense-in-depth and ergonomics:
 
 - TLS transport with certificate pinning (TOFU) so nothing on the wire is readable even
   without a tunnel.
 - Idle-connection timeout and per-IP connection caps.
+- Session token rotation on resume.
 - Persistent fail2ban bans (survive restarts).
 - Password policy options (length/complexity) and optional forced-2FA enrollment.
 - Per-user roles (`admin` / `member`) with configurable action restrictions.
