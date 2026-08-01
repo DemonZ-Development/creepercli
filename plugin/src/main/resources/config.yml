@@ -22,7 +22,7 @@ exec:
     - "say *"
     - "restart"
 limits:
-  commands-per-second: 10
+  commands-per-second: 30
   file-lock-ttl-minutes: 5
   transfer-chunk-size: 65536
   max-transfer-bytes: 1073741824

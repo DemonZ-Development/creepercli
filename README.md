@@ -19,7 +19,7 @@ CreeperCLI ships two components:
 - **Transfers** — `cpush`, `cpull`, `csync` with 64KB chunked NDJSON frames and SHA-256 verification.
 - **Server control** — `exec` through a default-deny allowlist, scheduled on the Bukkit main thread with `CompletableFuture` (never blocks the network thread), `say`/`restart` shortcuts.
 - **Monitoring** — `stats`, `tps`, `top` dashboard, live `log --grep` console streaming via a custom `java.util.logging.Handler` on `Bukkit.getLogger()`.
-- **Security hardening** — per-session token bucket (10 commands/s), append-only audit log with 10MB rotation, strict temp-file hygiene.
+- **Security hardening** — per-session token bucket (30 commands/s default), append-only audit log with 10MB rotation, strict temp-file hygiene.
 
 ## Quickstart
 
@@ -40,10 +40,18 @@ See `docs/SECURITY.md` for the threat model and hardening checklist.
 
 ## Documentation
 
-- `docs/QUICKSTART.md` — end-to-end setup
-- `docs/CONFIGURATION.md` — plugin config + user management
-- `docs/COMMANDS.md` — full command + protocol reference
-- `docs/SECURITY.md` — threat model, best practices, pen-test checklist
+The full documentation lives in [`wiki/`](wiki/README.md):
+
+- [`wiki/getting-started.md`](wiki/getting-started.md) — install, first user, first login, SSH tunnel
+- [`wiki/cli-commands.md`](wiki/cli-commands.md) — every CLI command, flag and example
+- [`wiki/console-commands.md`](wiki/console-commands.md) — `/creepercli` administration commands
+- [`wiki/configuration.md`](wiki/configuration.md) — full `config.yml` reference
+- [`wiki/security.md`](wiki/security.md) — threat model, auth, 2FA, sandbox, rate limits
+- [`wiki/protocol.md`](wiki/protocol.md) — wire protocol, actions and error codes
+- [`wiki/advanced.md`](wiki/advanced.md) — editing, syncing, monitoring, scripting
+- [`wiki/troubleshooting.md`](wiki/troubleshooting.md) — common errors, FAQ, E2E harness
+
+(`docs/` contains the original pre-wiki quickstart/commands/security notes.)
 
 ## Development
 
