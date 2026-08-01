@@ -61,7 +61,8 @@ function startRepl(ctx) {
     });
   });
 
-  rl.on('close', () => {
+  rl.on('close', async () => {
+    await ctx.client.flush();
     ctx.client.close();
     process.exit(0);
   });

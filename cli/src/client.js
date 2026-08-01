@@ -61,6 +61,12 @@ class CreeperClient extends EventEmitter {
     }
   }
 
+  async flush() {
+    while (this.pending.size > 0) {
+      await new Promise((r) => setTimeout(r, 25));
+    }
+  }
+
   request(action, params = {}, { timeoutMs } = {}) {
     if (!this.socket) {
       return Promise.reject(new ProtocolError(ERR.INTERNAL, 'Connection closed'));

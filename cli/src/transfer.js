@@ -28,7 +28,8 @@ function clearProgress() {
 }
 
 async function cpush(ctx, args) {
-  const [local, remote] = args;
+  const rest = args.filter((a) => !a.startsWith('--'));
+  const [local, remote] = rest;
   if (!local || !remote) throw new Error('Usage: cpush <local-file> <remote-path>');
   const stat = fs.statSync(local);
   if (!stat.isFile()) throw new Error('Local path must be a file');
@@ -66,7 +67,7 @@ async function cpush(ctx, args) {
 }
 
 async function cpull(ctx, args) {
-  const [remote, local] = args;
+  const [remote, local] = args.filter((a) => !a.startsWith('--'));
   if (!remote || !local) throw new Error('Usage: cpull <remote-path> <local-file>');
   const start = await ctx.client.request('xfer.pull.start', { path: remote });
   const { transferId, size, sha256: expectedSha, chunkSize } = start;
@@ -100,7 +101,7 @@ async function cpull(ctx, args) {
 }
 
 async function csync(ctx, args) {
-  const [remoteDir, localDir] = args;
+  const [remoteDir, localDir] = args.filter((a) => a !== '-y' && !a.startsWith('--'));
   if (!remoteDir || !localDir) throw new Error('Usage: csync <remote-dir> <local-dir> [--yes]');
   const yes = args.includes('--yes') || args.includes('-y');
   await ctx.client.request('fs.mkdir', { path: remoteDir, parents: true }).catch(() => {});
