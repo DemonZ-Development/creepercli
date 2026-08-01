@@ -15,7 +15,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
-import java.nio.file.FileTime;
+import java.nio.file.attribute.FileTime;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;

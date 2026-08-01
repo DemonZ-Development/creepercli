@@ -7,7 +7,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
-import org.bukkit.command.ServerCommandSender;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -87,7 +86,7 @@ public final class BukkitBridge {
             };
             return (CommandSender) Proxy.newProxyInstance(
                     Server.class.getClassLoader(),
-                    new Class<?>[]{CommandSender.class, ServerCommandSender.class, ConsoleCommandSender.class},
+                    new Class<?>[]{CommandSender.class, ConsoleCommandSender.class},
                     handler);
         }
 
