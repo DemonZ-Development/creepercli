@@ -43,7 +43,7 @@ async function main(argv) {
   }
 
   const client = await connect(cfg);
-  const ctx = { client, cfg, username: null, cwd: '/', exit: false };
+  const ctx = { client, cfg, username: null, cwd: '/', exit: false, flags };
   try {
     let creds = session.load(cfg.host, cfg.port);
     if (creds) {

@@ -27,22 +27,29 @@ function startRepl(ctx) {
     }
   });
 
-  let busy = false;
+  const queue = [];
+  let running = false;
+  async function pump() {
+    if (running) return;
+    running = true;
+    while (queue.length) {
+      const line = queue.shift();
+      await runCommand(ctx, line);
+      if (ctx.exit) {
+        queue.length = 0;
+        break;
+      }
+      rl.setPrompt(prompt(ctx));
+    }
+    running = false;
+  }
+
   rl.setPrompt(prompt(ctx));
   rl.prompt();
 
-  rl.on('line', async (line) => {
-    if (busy) return;
-    busy = true;
-    rl.pause();
-    await runCommand(ctx, line);
-    if (ctx.exit) {
-      rl.close();
-      return;
-    }
-    rl.setPrompt(prompt(ctx));
-    busy = false;
-    rl.prompt();
+  rl.on('line', (line) => {
+    queue.push(line);
+    pump();
   });
 
   rl.on('SIGINT', () => {
