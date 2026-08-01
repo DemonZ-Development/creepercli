@@ -49,6 +49,19 @@ public final class CommandRouter {
                 }
                 return done(res);
             }
+            case Protocol.ACTION_AUTH_RESUME -> {
+                String token = Json.opt(params, "token", null);
+                if (token == null) {
+                    throw new CreeperError(Protocol.ERR_UNAUTHORIZED, "Missing session token");
+                }
+                Session s = plugin.sessions().getValid(token, conn.remoteIp());
+                if (s == null) {
+                    conn.setSession(null);
+                    throw new CreeperError(Protocol.ERR_SESSION_EXPIRED, "Session expired, please login again");
+                }
+                conn.setSession(s);
+                return done(authCommands.whoami(conn));
+            }
             case Protocol.ACTION_AUTH_LOGOUT -> {
                 String token = Json.opt(params, "token", null);
                 Session s = conn.session();

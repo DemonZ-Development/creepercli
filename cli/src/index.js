@@ -49,9 +49,9 @@ async function main(argv) {
     if (creds) {
       ctx.username = creds.username;
       try {
-        const whoami = await client.request('auth.whoami', {}, { timeoutMs: 15000 });
-        ctx.username = whoami.username;
-        ctx.cwd = whoami.cwd || '/';
+        const resume = await client.request('auth.resume', { token: creds.token }, { timeoutMs: 15000 });
+        ctx.username = resume.username;
+        ctx.cwd = resume.cwd || '/';
       } catch (err) {
         if (err.code === 'E_SESSION_EXPIRED' || err.code === 'E_UNAUTHORIZED') {
           session.clear();

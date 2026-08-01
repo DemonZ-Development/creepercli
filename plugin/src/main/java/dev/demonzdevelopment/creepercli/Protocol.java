@@ -5,6 +5,7 @@ public final class Protocol {
 
     public static final String ACTION_PING = "ping";
     public static final String ACTION_AUTH_LOGIN = "auth.login";
+    public static final String ACTION_AUTH_RESUME = "auth.resume";
     public static final String ACTION_AUTH_LOGOUT = "auth.logout";
     public static final String ACTION_AUTH_WHOAMI = "auth.whoami";
     public static final String ACTION_AUTH_PASSWD = "auth.passwd";
