@@ -62,6 +62,9 @@ class CreeperClient extends EventEmitter {
   }
 
   request(action, params = {}, { timeoutMs } = {}) {
+    if (!this.socket) {
+      return Promise.reject(new ProtocolError(ERR.INTERNAL, 'Connection closed'));
+    }
     const id = crypto.randomUUID();
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {

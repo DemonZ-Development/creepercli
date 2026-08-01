@@ -103,6 +103,7 @@ async function csync(ctx, args) {
   const [remoteDir, localDir] = args;
   if (!remoteDir || !localDir) throw new Error('Usage: csync <remote-dir> <local-dir> [--yes]');
   const yes = args.includes('--yes') || args.includes('-y');
+  await ctx.client.request('fs.mkdir', { path: remoteDir, parents: true }).catch(() => {});
 
   const remote = await ctx.client.request('xfer.list', { path: remoteDir }, { timeoutMs: 600000 });
   const remoteMap = new Map();
