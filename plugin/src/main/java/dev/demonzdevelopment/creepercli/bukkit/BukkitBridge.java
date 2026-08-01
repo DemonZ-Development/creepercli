@@ -42,13 +42,12 @@ public final class BukkitBridge {
                 return;
             }
             boolean okFinal = ok;
-            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, () -> {
                 long elapsed = (System.nanoTime() - start) / 1_000_000;
                 List<String> all = new ArrayList<>(sender.lines());
                 all.addAll(plugin.logs().since(mark));
-                plugin.getLogger().info("[exec-dbg] captured " + all.size() + " lines, mark=" + mark);
                 future.complete(new ExecResult(okFinal, all, elapsed));
-            }, 2);
+            }, 6);
         });
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (!future.isDone()) {
