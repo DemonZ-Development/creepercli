@@ -57,6 +57,7 @@ public final class BukkitBridge {
 
         private CommandSender asSender() {
             InvocationHandler handler = (Object proxy, Method method, Object[] args) -> {
+                plugin.getLogger().info("[execproxy] call: " + method.getName());
                 switch (method.getName()) {
                     case "sendMessage" -> {
                         if (args == null) {

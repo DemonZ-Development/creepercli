@@ -176,4 +176,11 @@ class PathSanitizerTest {
         assertEquals(sanitizer.root(), sanitizer.resolve("", ""));
         assertEquals(sanitizer.root(), sanitizer.resolve("", "   ".trim()));
     }
+
+    @Test
+    void absolutePathsIgnoreCwd() throws Exception {
+        Files.createDirectories(tempRoot.resolve("a/b"));
+        assertEquals(tempRoot.resolve("a/b"), sanitizer.resolve("x/y", "/a/b"));
+        assertEquals(tempRoot.toRealPath(), sanitizer.resolve("a/b", "/"));
+    }
 }

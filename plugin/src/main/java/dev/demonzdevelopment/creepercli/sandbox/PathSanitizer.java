@@ -37,12 +37,13 @@ public final class PathSanitizer {
             throw new PathEscapeException("Drive-absolute paths are not allowed");
         }
 
+        boolean absolute = requested.startsWith("/");
         String rel = requested;
         while (rel.startsWith("/")) {
             rel = rel.substring(1);
         }
 
-        String base = (cwd == null || cwd.isEmpty()) ? "" : cwd;
+        String base = (absolute || cwd == null || cwd.isEmpty()) ? "" : cwd;
         Path joined = root.resolve(base).resolve(rel).normalize();
         if (!isInside(joined)) {
             throw new PathEscapeException("Path escapes jail: " + requested);
