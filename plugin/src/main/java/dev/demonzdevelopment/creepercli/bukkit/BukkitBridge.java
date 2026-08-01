@@ -41,10 +41,13 @@ public final class BukkitBridge {
                 future.completeExceptionally(new CreeperError(Protocol.ERR_INTERNAL, "Command execution failed: " + t.getMessage()));
                 return;
             }
-            long elapsed = (System.nanoTime() - start) / 1_000_000;
-            List<String> all = new ArrayList<>(sender.lines());
-            all.addAll(plugin.logs().since(mark));
-            future.complete(new ExecResult(ok, all, elapsed));
+            boolean okFinal = ok;
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                long elapsed = (System.nanoTime() - start) / 1_000_000;
+                List<String> all = new ArrayList<>(sender.lines());
+                all.addAll(plugin.logs().since(mark));
+                future.complete(new ExecResult(okFinal, all, elapsed));
+            }, 2);
         });
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (!future.isDone()) {
