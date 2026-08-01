@@ -8,7 +8,6 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.ConsoleCommandSender;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -99,7 +98,7 @@ public final class BukkitBridge {
             };
             return (CommandSender) Proxy.newProxyInstance(
                     Server.class.getClassLoader(),
-                    new Class<?>[]{CommandSender.class, ConsoleCommandSender.class},
+                    new Class<?>[]{CommandSender.class},
                     handler);
         }
 
