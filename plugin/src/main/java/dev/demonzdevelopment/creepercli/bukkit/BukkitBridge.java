@@ -1,0 +1,111 @@
+package dev.demonzdevelopment.creepercli.bukkit;
+
+import dev.demonzdevelopment.creepercli.CreeperCLIPlugin;
+import dev.demonzdevelopment.creepercli.CreeperError;
+import dev.demonzdevelopment.creepercli.Protocol;
+import org.bukkit.Bukkit;
+import org.bukkit.Server;
+import org.bukkit.command.CommandSender;
+import org.bukkit.command.ConsoleCommandSender;
+import org.bukkit.command.ServerCommandSender;
+
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+
+public final class BukkitBridge {
+    public record ExecResult(boolean success, List<String> lines, long elapsedMs) {
+    }
+
+    private final CreeperCLIPlugin plugin;
+
+    public BukkitBridge(CreeperCLIPlugin plugin) {
+        this.plugin = plugin;
+    }
+
+    public CompletableFuture<ExecResult> exec(String command, int timeoutSeconds) {
+        CompletableFuture<ExecResult> future = new CompletableFuture<>();
+        CapturingSender sender = new CapturingSender();
+        long start = System.nanoTime();
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            boolean ok;
+            try {
+                ok = Bukkit.getServer().dispatchCommand(sender.asSender(), command);
+            } catch (Throwable t) {
+                plugin.getLogger().warning("exec threw on main thread: " + t);
+                future.completeExceptionally(new CreeperError(Protocol.ERR_INTERNAL, "Command execution failed: " + t.getMessage()));
+                return;
+            }
+            long elapsed = (System.nanoTime() - start) / 1_000_000;
+            future.complete(new ExecResult(ok, sender.lines(), elapsed));
+        });
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (!future.isDone()) {
+                future.completeExceptionally(new CreeperError(Protocol.ERR_TIMEOUT,
+                        "exec timed out after " + timeoutSeconds + "s"));
+            }
+        }, timeoutSeconds * 20L);
+        return future;
+    }
+
+    private static final class CapturingSender {
+        private final List<String> lines = new ArrayList<>();
+
+        private CommandSender asSender() {
+            InvocationHandler handler = (Object proxy, Method method, Object[] args) -> {
+                switch (method.getName()) {
+                    case "sendMessage" -> {
+                        if (args != null && args[0] instanceof String s) {
+                            lines.add(s);
+                        } else if (args != null && args[0] instanceof String[] arr) {
+                            for (String s : arr) lines.add(s);
+                        }
+                        return null;
+                    }
+                    case "getName" -> {
+                        return "CreeperCLI-Console";
+                    }
+                    case "isOp" -> {
+                        return true;
+                    }
+                    case "hasPermission", "isPermissionSet" -> {
+                        return true;
+                    }
+                    case "getServer" -> {
+                        return Bukkit.getServer();
+                    }
+                    case "getPermissionMessage" -> {
+                        return null;
+                    }
+                    default -> {
+                        return defaultReturn(method.getReturnType());
+                    }
+                }
+            };
+            return (CommandSender) Proxy.newProxyInstance(
+                    Server.class.getClassLoader(),
+                    new Class<?>[]{CommandSender.class, ServerCommandSender.class, ConsoleCommandSender.class},
+                    handler);
+        }
+
+        private static Object defaultReturn(Class<?> type) {
+            if (!type.isPrimitive()) return null;
+            if (type == boolean.class) return false;
+            if (type == int.class) return 0;
+            if (type == long.class) return 0L;
+            if (type == double.class) return 0.0;
+            if (type == float.class) return 0.0f;
+            if (type == short.class) return (short) 0;
+            if (type == byte.class) return (byte) 0;
+            if (type == char.class) return (char) 0;
+            return null;
+        }
+
+        private List<String> lines() {
+            return lines;
+        }
+    }
+}

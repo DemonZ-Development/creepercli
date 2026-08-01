@@ -1,0 +1,40 @@
+name: Plugin Build
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Build plugin
+        run: mvn -B package
+        working-directory: plugin
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CreeperCLI-Plugin
+          path: plugin/target/CreeperCLI-*.jar
+
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: plugin/target/CreeperCLI-*.jar
+          generate_release_notes: true

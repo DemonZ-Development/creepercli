@@ -1,0 +1,33 @@
+network:
+  host: 127.0.0.1
+  port: 45678
+  max-connections: 16
+  max-payload-bytes: 10485760
+auth:
+  session-timeout-minutes: 15
+  login-limiter:
+    max-attempts: 3
+    window-minutes: 5
+  fail2ban:
+    max-failures: 3
+    window-minutes: 10
+    ban-minutes: 10
+sandbox:
+  server-root: ""
+exec:
+  timeout-seconds: 30
+  allowlist:
+    - "list"
+    - "whitelist *"
+    - "say *"
+    - "restart"
+limits:
+  commands-per-second: 10
+  file-lock-ttl-minutes: 5
+  transfer-chunk-size: 65536
+  max-transfer-bytes: 1073741824
+monitor:
+  log-buffer-lines: 500
+  top-refresh-seconds: 2
+audit:
+  max-mb: 10
