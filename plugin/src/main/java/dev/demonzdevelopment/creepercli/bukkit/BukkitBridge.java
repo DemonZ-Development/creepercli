@@ -3,6 +3,8 @@ package dev.demonzdevelopment.creepercli.bukkit;
 import dev.demonzdevelopment.creepercli.CreeperCLIPlugin;
 import dev.demonzdevelopment.creepercli.CreeperError;
 import dev.demonzdevelopment.creepercli.Protocol;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.command.CommandSender;
@@ -57,10 +59,15 @@ public final class BukkitBridge {
             InvocationHandler handler = (Object proxy, Method method, Object[] args) -> {
                 switch (method.getName()) {
                     case "sendMessage" -> {
-                        if (args != null && args[0] instanceof String s) {
+                        if (args == null) {
+                            return null;
+                        }
+                        if (args[0] instanceof String s) {
                             lines.add(s);
-                        } else if (args != null && args[0] instanceof String[] arr) {
+                        } else if (args[0] instanceof String[] arr) {
                             for (String s : arr) lines.add(s);
+                        } else if (args[0] instanceof Component comp) {
+                            lines.add(PlainTextComponentSerializer.plainText().serialize(comp));
                         }
                         return null;
                     }
