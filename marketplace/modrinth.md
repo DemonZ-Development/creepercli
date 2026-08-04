@@ -9,14 +9,21 @@
 
 ## Description
 
-CreeperCLI connects a Node.js command-line tool to a Paper or Spigot server through a TCP socket. The plugin runs on the server. The CLI runs on your machine. No web panel, no RCON.
+CreeperCLI gives you a terminal into your Minecraft server. A plugin runs on the server, a CLI runs on your machine, they talk over TCP.
 
-Edit files on the server through your local editor. Push and pull files with SHA-256 verification. Sync entire directories. Run console commands through an allowlist you control. Stream the live console with grep filtering. Check TPS and server stats. Keep a live process monitor open.
+Edit files, push and pull with checksums, sync directories. Run console commands through an allowlist. Stream logs, check TPS, watch processes live.
 
-Security is not optional. Bcrypt password hashing (cost 12). Optional TOTP two-factor authentication. Sessions expire after 15 minutes and lock to the connecting IP. Per-IP login throttling with temporary bans after failures. Symlink and `..` escape attempts get rejected. Every action writes to an append-only audit log.
+Bcrypt auth, optional 2FA, session timeouts, IP binding, audit logging. Defaults to `0.0.0.0:45678` for hosting panels. Set `127.0.0.1` and tunnel with SSH for production.
 
-The plugin binds `0.0.0.0:45678` by default for hosting panel compatibility. Set `network.host: "127.0.0.1"` in the config and connect through an SSH tunnel for production use.
+```bash
+# install
+npm install -g creepercli
 
-Install the jar in `plugins/` and restart the server. Create a user from the server console with `/creepercli user add <name> <password>`. On your machine, run `npm install -g creepercli` then `creepercli login --host <ip> --port 45678`.
+# server console
+/creepercli user add <name> <password>
+
+# your machine
+creepercli login --host <ip> --port 45678
+```
 
 CreeperCLI grants remote, privileged control of a Minecraft server. The creator is not responsible for how you use this tool.
