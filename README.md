@@ -29,7 +29,7 @@ Both parts are required. The plugin does nothing without a client; the CLI is a 
 3. Install the CLI on your computer: `npm install -g creepercli`.
 4. Connect: `creepercli login --host <server-ip> --port 45678`. The CLI drops you into the interactive shell.
 
-Full walkthrough: [wiki/getting-started.md](wiki/getting-started.md).
+Full walkthrough: [Getting started](https://demonz-development.github.io/creepercli/getting-started/).
 
 ## Read the security notes first
 
@@ -39,24 +39,24 @@ The plugin binds `0.0.0.0:45678` by default so hosted panels and containers work
 - Run the server as a non-root OS user. CreeperCLI is a full admin channel.
 - Enable 2FA with `creepercli totp setup`. The limiter and fail2ban only slow attackers; 2FA stops credential theft.
 
-The full threat model and hardening checklist is in [wiki/security.md](wiki/security.md).
+The full threat model and hardening checklist is in [Security](https://demonz-development.github.io/creepercli/security/).
 
 ## Documentation
 
-The wiki in [`wiki/`](wiki/README.md) is the single source of truth.
+The docs at [demonz-development.github.io/creepercli](https://demonz-development.github.io/creepercli/) are the single source of truth.
 
 | Page | Covers |
 |---|---|
-| [Getting started](wiki/getting-started.md) | Install, first user, first login, SSH tunnel |
-| [CLI commands](wiki/cli-commands.md) | Every command, flag, and example |
-| [Console commands](wiki/console-commands.md) | `/creepercli` administration |
-| [Configuration](wiki/configuration.md) | Every `config.yml` key, auto-migration |
-| [Security](wiki/security.md) | Threat model, 2FA, sandbox, rate limits |
-| [Protocol](wiki/protocol.md) | Wire format, actions, events, error codes |
-| [Plugin API](wiki/plugin-api.md) | Extension API for Paper/Spigot developers |
-| [Architecture](wiki/architecture.md) | Threading model, sandbox design, extensions |
-| [Advanced](wiki/advanced.md) | Editing, sync, monitoring, scripting |
-| [Troubleshooting](wiki/troubleshooting.md) | Common errors, FAQ, tests |
+| [Getting started](https://demonz-development.github.io/creepercli/getting-started/) | Install, first user, first login, SSH tunnel |
+| [CLI commands](https://demonz-development.github.io/creepercli/cli-commands/) | Every command, flag, and example |
+| [Console commands](https://demonz-development.github.io/creepercli/console-commands/) | `/creepercli` administration |
+| [Configuration](https://demonz-development.github.io/creepercli/configuration/) | Every `config.yml` key, auto-migration |
+| [Security](https://demonz-development.github.io/creepercli/security/) | Threat model, 2FA, sandbox, rate limits |
+| [Protocol](https://demonz-development.github.io/creepercli/protocol/) | Wire format, actions, events, error codes |
+| [Plugin API](https://demonz-development.github.io/creepercli/plugin-api/) | Extension API for Paper/Spigot developers |
+| [Architecture](https://demonz-development.github.io/creepercli/architecture/) | Threading model, sandbox design, extensions |
+| [Advanced](https://demonz-development.github.io/creepercli/advanced/) | Editing, sync, monitoring, scripting |
+| [Troubleshooting](https://demonz-development.github.io/creepercli/troubleshooting/) | Common errors, FAQ, tests |
 
 Ready-to-post listings for Modrinth, SpigotMC, Hangar, CurseForge, npm, and GitHub Releases live in [`marketplace/`](marketplace/).
 

@@ -72,7 +72,7 @@ One-shot mode works for scripts: `creepercli ls /plugins`, `creepercli exec list
 - Only allowlisted console commands run (`list`, `say *`, `whitelist *`, `restart` by default).
 - The plugin binds `0.0.0.0` by default so hosted panels work. On a machine you control, set `network.host: "127.0.0.1"` and connect through an SSH tunnel.
 
-The full threat model lives in the project wiki: [github.com/DemonZ-Development/creepercli/wiki](https://github.com/DemonZ-Development/creepercli/wiki).
+The full threat model lives in the docs: [demonz-development.github.io/creepercli](https://demonz-development.github.io/creepercli/).
 
 ## Links
 

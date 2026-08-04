@@ -31,7 +31,7 @@
 
 ### Security note
 
-The plugin binds `0.0.0.0:45678` by default. On a machine you control, set `network.host: "127.0.0.1"` and connect through an SSH tunnel. See the wiki: https://github.com/DemonZ-Development/creepercli/wiki/Security
+The plugin binds `0.0.0.0:45678` by default. On a machine you control, set `network.host: "127.0.0.1"` and connect through an SSH tunnel. See the [security docs](https://demonz-development.github.io/creepercli/security/).
 
 ### Disclaimer
 
