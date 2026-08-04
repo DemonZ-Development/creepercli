@@ -15,28 +15,34 @@ Sandboxed files, allowlisted commands, live console, and verified transfers. You
 
 ## Description (paste-ready)
 
-CreeperCLI is a server administration plugin with a companion CLI. It puts a real terminal on your Minecraft server: browse and edit files inside a sandbox, run console commands through an allowlist, stream logs with grep filtering, and transfer files with SHA-256 verification. No web panel, no RCON port, no clunky UI. Just your shell.
+CreeperCLI is a remote admin plugin for Spigot and Paper with a companion CLI. The plugin handles authentication, file access, console command execution, and monitoring over TCP; the CLI gives you a shell into the server. No web panel, no RCON port.
 
-Security is the point:
+What you can do:
 
-- Sandboxed file access: every path is jailed inside the server root; `..` and symlink escapes are blocked.
-- bcrypt (cost 12) logins with optional TOTP 2FA; sessions expire after 15 idle minutes and bind to your IP.
-- Per-IP login limiting and fail2ban against brute force.
-- Only allowlisted console commands run, scheduled safely on the main thread.
-- Every action lands in an append-only audit log.
+- read and edit files on the server, with every path checked against a sandbox rooted at the server folder;
+- run console commands through an allowlist, so only the ones you picked ever execute;
+- stream the console live with `log --grep`, check `stats` and `tps`, or keep `top` open;
+- push and pull files with `cpush` / `cpull` and sync directories with `csync`, all with SHA-256 checks;
+- edit a config in your local editor (`edit`) and have it pushed back under a lock.
 
-Also included: `edit` opens remote files in your local editor and pushes changes back under an exclusive lock; `stats`, `tps`, and a `top` dashboard; `cpush`/`cpull`/`csync` transfers with integrity checks; in-game `/creepercli` admin commands.
+Security is enforced server-side, not as an option:
 
-### Install
+- logins use bcrypt (cost 12) and optional TOTP 2FA;
+- sessions expire after 15 minutes of inactivity and are bound to the IP they came from;
+- per-IP login throttling, plus a temporary ban after repeated failures;
+- `..` and symlink escapes from the sandbox are rejected;
+- every action is written to an append-only audit log with timestamp, IP, user, and parameters.
+
+Install:
 
 1. Put the jar in `plugins/` and restart.
-2. Run `/creepercli user add <name> <strong-password>` from the console.
-3. Install the CLI: `npm install -g creepercli`.
-4. Connect: `creepercli login --host <server-ip> --port 45678`.
+2. From the server console: `/creepercli user add <name> <password>`.
+3. `npm install -g creepercli`
+4. `creepercli login --host <ip> --port 45678`
 
 ### Security note
 
-The plugin binds `0.0.0.0:45678` by default for hosting panel compatibility. On a machine you control, set `network.host: "127.0.0.1"` in `plugins/CreeperCLI/config.yml` and reach the server through an SSH tunnel: `ssh -N -L 45678:127.0.0.1:45678 user@server`. Run the server as a non-root OS user.
+The plugin listens on `0.0.0.0:45678` by default so it works on hosting panels out of the box. On a machine you control, set `network.host: "127.0.0.1"` in `plugins/CreeperCLI/config.yml` and connect over an SSH tunnel: `ssh -N -L 45678:127.0.0.1:45678 user@server`. Run the server as a non-root OS user.
 
 ### Disclaimer
 

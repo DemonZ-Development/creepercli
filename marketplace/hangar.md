@@ -6,49 +6,44 @@
 
 ## Title
 
-CreeperCLI: your Minecraft server, from your terminal
+CreeperCLI — manage your Minecraft server from the terminal
 
 ## Tagline
 
-Sandboxed files, allowlisted commands, live console logs, and SHA-256 verified transfers. All over an SSH-tunnel-friendly TCP protocol.
+Remote admin for Paper/Spigot: sandboxed file access, allowlisted console commands, live logs, and verified transfers from your terminal.
 
 ## Description (paste-ready)
 
-Stop fighting the web console. CreeperCLI puts a real terminal on your Minecraft server: browse and edit files, run console commands, watch logs live, and move files with integrity checks. A hardened Paper plugin does the heavy lifting; a tiny Node CLI runs anywhere Node runs.
+CreeperCLI is a remote admin tool for Paper and Spigot servers. A small plugin runs on the server and speaks a JSON protocol over TCP; a Node CLI runs on your machine. No web panel involved.
 
-Everything is built around safety:
+With it you can:
 
-- **Sandboxed file access.** Every path resolves inside the server root. `..` escapes, symlink swaps, and absolute-path tricks are blocked.
-- **bcrypt + TOTP 2FA.** Passwords are hashed at cost 12, sessions expire after 15 idle minutes, and every token is bound to your IP.
-- **Brute-force armor.** Per-IP login limits and fail2ban shut attackers down before they get anywhere.
-- **Allowlisted commands.** Only console commands you approve can run, dispatched safely on the main thread.
-- **Full accountability.** Every action lands in an append-only audit log with timestamp, IP, user, and parameters.
+- read and edit files on the server, with every path checked against a sandbox rooted at the server folder;
+- run console commands through an allowlist, so only the ones you picked ever execute;
+- stream the console live with `log --grep`, check `stats` and `tps`, or keep `top` open;
+- push and pull files with `cpush` / `cpull`, and sync directories with `csync`, all with SHA-256 checks;
+- edit a config in your local editor (`edit`) and have it pushed back under a lock.
 
-What it feels like:
+Security is enforced server-side, not as an option:
 
-```text
-admin@server:/> stats
-CPU load: 0.15 | Memory heap: 494.1M / 680.0M | Disk: 40.3G / 192.7G
+- logins use bcrypt (cost 12) and optional TOTP 2FA;
+- sessions expire after 15 minutes of inactivity and are bound to the IP they came from;
+- per-IP login throttling, plus a temporary ban after repeated failures;
+- `..` and symlink escapes from the sandbox are rejected;
+- every action is written to an append-only audit log with timestamp, IP, user, and parameters.
 
-admin@server:/> ls /plugins
-banned-ips.json  bukkit.yml  config/  logs/  plugins/  server.properties
+In-game admin commands (`/creepercli user add|remove|list`, `status`, `reload`, `update`) round it out. Anonymous usage metrics are collected via bStats and can be disabled in `plugins/bStats/config.yml`.
 
-admin@server:/> log --grep 'ERROR|WARN'
-[15:02:11] [Server thread/WARN]: Entity minecraft:zombie threw an exception
-```
-
-Edit remote configs in your local editor with `edit`, push plugin jars with `cpush`, pull crash reports with `cpull`, and mirror configs with `csync`. In-game admin commands (`/creepercli user add|remove|list`, `status`, `reload`, `update`) and anonymous usage metrics via bStats round it out (disable in `plugins/bStats/config.yml`).
-
-### Install
+Install:
 
 1. Put the jar in `plugins/` and restart.
-2. Run `/creepercli user add <name> <strong-password>` from the console.
-3. Install the CLI: `npm install -g creepercli`.
-4. Connect: `creepercli login --host <server-ip> --port 45678`.
+2. From the server console: `/creepercli user add <name> <password>`.
+3. `npm install -g creepercli`
+4. `creepercli login --host <ip> --port 45678`
 
 ### Security note
 
-The plugin binds `0.0.0.0:45678` by default so hosting panels work out of the box. On a machine you control, bind loopback and tunnel: set `network.host: "127.0.0.1"` in `plugins/CreeperCLI/config.yml`, restart, then `ssh -N -L 45678:127.0.0.1:45678 user@server`. Run the server as a non-root OS user.
+The plugin listens on `0.0.0.0:45678` by default so it works on hosting panels out of the box. On a machine you control, set `network.host: "127.0.0.1"` in `plugins/CreeperCLI/config.yml` and connect over an SSH tunnel: `ssh -N -L 45678:127.0.0.1:45678 user@server`. Run the server as a non-root OS user.
 
 ### Disclaimer
 
