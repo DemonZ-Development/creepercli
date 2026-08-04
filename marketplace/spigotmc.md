@@ -9,7 +9,7 @@
 
 CreeperCLI is two things: a plugin and a command-line app. The plugin runs on the server, the CLI runs on your machine, and they talk over TCP. No web panel, nothing to learn in-game.
 
-You get a real terminal into the server. Browse files. Open one in your own editor and push changes back. Push, pull, and sync folders with checksums. Run console commands from your shell. Watch the console stream by, check TPS, keep an eye on memory and disk.
+You get a real terminal into the server. Browse files, open one in your own editor and push changes back, push and pull with checksums, sync folders, run console commands from your shell, watch the console stream by, check TPS and stats.
 
 ### Install
 
@@ -19,8 +19,6 @@ You get a real terminal into the server. Browse files. Open one in your own edit
 4. Log in: `creepercli login --host <ip> --port 45678`
 
 ### Commands
-
-One command at a time, straight from your terminal:
 
 | Command | What it does |
 |---|---|
@@ -40,33 +38,24 @@ One command at a time, straight from your terminal:
 | `creepercli totp setup` | Turn on 2FA |
 | `creepercli logout` | End the session |
 
-Or drop the prefix and use the shell instead:
+Drop the prefix in REPL mode:
 
 ```
 creepercli repl
 > ls /
-> cat server.properties
-> exec list
 > stats
 > exit
 ```
 
 ### Server-side commands
 
-| Command | What it does |
-|---|---|
-| `/creepercli user add <name> <password>` | Create a user |
-| `/creepercli user remove <name>` | Delete a user |
-| `/creepercli user list` | List users |
-| `/creepercli status` | Plugin status, banned IPs |
-| `/creepercli reload` | Reload config |
-| `/creepercli update` | Check for updates |
+`/creepercli user add|remove|list <name> <password>`, `/creepercli status`, `/creepercli reload`, `/creepercli update`.
 
 ### Security
 
 The port is a door into your server, so it stays locked down. Passwords are bcrypt-hashed, 2FA is optional but available, sessions expire after 15 idle minutes and stay bound to the IP that started them. The plugin throttles failed logins and bans IPs that keep failing. File access is jailed to the server folder, so `..` and symlink tricks can't escape it. Every action lands in an append-only audit log.
 
-By default it binds `0.0.0.0:45678`, which works on hosting panels as-is. If the machine is yours, set `network.host: "127.0.0.1"` and reach it through an SSH tunnel:
+It binds `0.0.0.0:45678` by default. Set `network.host: "127.0.0.1"` and tunnel with SSH:
 
 ```
 ssh -N -L 45678:127.0.0.1:45678 user@server
@@ -74,6 +63,6 @@ ssh -N -L 45678:127.0.0.1:45678 user@server
 
 ### Settings
 
-Everything lives in `plugins/CreeperCLI/config.yml`. When you update the plugin, missing keys get added on their own, so your config survives upgrades. The ones people touch most: `network.host`, `network.port`, `auth.session-timeout-minutes`, `sandbox.server-root`, `exec.allowlist`, and `limits.commands-per-second`.
+Everything lives in `plugins/CreeperCLI/config.yml`. Missing keys get added on upgrade. Most-touched: `network.host`, `network.port`, `auth.session-timeout-minutes`, `sandbox.server-root`, `exec.allowlist`, `limits.commands-per-second`.
 
 CreeperCLI grants remote, privileged control of a Minecraft server. The creator is not responsible for how you use this tool.
