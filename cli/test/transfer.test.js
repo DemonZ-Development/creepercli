@@ -23,23 +23,23 @@ const path = require('path');
 const os = require('os');
 const { joinRemote, walkLocal } = require('../src/transfer');
 
-test('joinRemote', (t) => {
-  t.test('joins base path without trailing slash and relative path', () => {
+test('joinRemote', async (t) => {
+  await t.test('joins base path without trailing slash and relative path', () => {
     assert.equal(joinRemote('/var/minecraft', 'plugins/config.yml'), '/var/minecraft/plugins/config.yml');
     assert.equal(joinRemote('logs', 'latest.log'), 'logs/latest.log');
   });
 
-  t.test('joins base path with trailing slash and relative path', () => {
+  await t.test('joins base path with trailing slash and relative path', () => {
     assert.equal(joinRemote('/var/minecraft/', 'plugins/config.yml'), '/var/minecraft/plugins/config.yml');
     assert.equal(joinRemote('logs/', 'latest.log'), 'logs/latest.log');
   });
 
-  t.test('handles root or empty base paths', () => {
+  await t.test('handles root or empty base paths', () => {
     assert.equal(joinRemote('/', 'server.properties'), '/server.properties');
   });
 });
 
-test('walkLocal', (t) => {
+test('walkLocal', async (t) => {
   let tmpDir;
 
   t.beforeEach(() => {
@@ -52,7 +52,7 @@ test('walkLocal', (t) => {
     }
   });
 
-  t.test('returns a map of files with normalized relative paths using "/"', () => {
+  await t.test('returns a map of files with normalized relative paths using "/"', () => {
     const subDir = path.join(tmpDir, 'subdir');
     const nestedDir = path.join(subDir, 'nested');
     fs.mkdirSync(nestedDir, { recursive: true });
@@ -85,13 +85,13 @@ test('walkLocal', (t) => {
     assert.equal(typeof file3Info.mtime, 'number');
   });
 
-  t.test('returns empty map for empty directory', () => {
+  await t.test('returns empty map for empty directory', () => {
     const result = walkLocal(tmpDir);
     assert.ok(result instanceof Map);
     assert.equal(result.size, 0);
   });
 
-  t.test('returns empty map for non-existent directory', () => {
+  await t.test('returns empty map for non-existent directory', () => {
     const nonExistent = path.join(tmpDir, 'does-not-exist');
     const result = walkLocal(nonExistent);
     assert.ok(result instanceof Map);

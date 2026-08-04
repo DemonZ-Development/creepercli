@@ -21,8 +21,8 @@ const assert = require('node:assert/strict');
 const { ProtocolError, friendly, ERR } = require('../src/protocol');
 const { CreeperClient } = require('../src/client');
 
-test('ProtocolError formatting', (t) => {
-  t.test('creates ProtocolError with code and message', () => {
+test('ProtocolError formatting', async (t) => {
+  await t.test('creates ProtocolError with code and message', () => {
     const err = new ProtocolError(ERR.UNAUTHORIZED, 'Access denied');
     assert.equal(err.code, ERR.UNAUTHORIZED);
     assert.equal(err.message, 'Access denied');
@@ -30,38 +30,38 @@ test('ProtocolError formatting', (t) => {
     assert.ok(err instanceof ProtocolError);
   });
 
-  t.test('creates ProtocolError with default message when message is omitted', () => {
+  await t.test('creates ProtocolError with default message when message is omitted', () => {
     const err = new ProtocolError(ERR.BANNED);
     assert.equal(err.code, ERR.BANNED);
     assert.equal(err.message, ERR.BANNED);
   });
 
-  t.test('friendly formats known ProtocolError codes with hints', () => {
+  await t.test('friendly formats known ProtocolError codes with hints', () => {
     const err = new ProtocolError(ERR.UNAUTHORIZED, 'Authentication required');
     const formatted = friendly(err);
     assert.equal(formatted, 'Authentication required [run "creepercli login" first] (E_UNAUTHORIZED)');
   });
 
-  t.test('friendly formats unknown ProtocolError code without hint', () => {
+  await t.test('friendly formats unknown ProtocolError code without hint', () => {
     const err = new ProtocolError('E_CUSTOM', 'Custom error occurred');
     const formatted = friendly(err);
     assert.equal(formatted, 'Custom error occurred (E_CUSTOM)');
   });
 
-  t.test('friendly handles standard Error instance', () => {
+  await t.test('friendly handles standard Error instance', () => {
     const err = new Error('Standard failure');
     assert.equal(friendly(err), 'Standard failure');
   });
 
-  t.test('friendly handles string or non-Error values', () => {
+  await t.test('friendly handles string or non-Error values', () => {
     assert.equal(friendly('Simple string error'), 'Simple string error');
     assert.equal(friendly(null), 'null');
     assert.equal(friendly(undefined), 'undefined');
   });
 });
 
-test('JSON frame request stringification and response parsing', (t) => {
-  t.test('stringifies request frames correctly', async () => {
+test('JSON frame request stringification and response parsing', async (t) => {
+  await t.test('stringifies request frames correctly', async () => {
     const client = new CreeperClient({ host: 'localhost', port: 9999 });
     let writtenData = '';
     client.socket = {
@@ -92,7 +92,7 @@ test('JSON frame request stringification and response parsing', (t) => {
     assert.deepEqual(res, { files: [] });
   });
 
-  t.test('parses successful response frame', async () => {
+  await t.test('parses successful response frame', async () => {
     const client = new CreeperClient({ host: 'localhost', port: 9999 });
     client.socket = { write() {} };
 
@@ -112,7 +112,7 @@ test('JSON frame request stringification and response parsing', (t) => {
     assert.deepEqual(data, { pong: true });
   });
 
-  t.test('parses error response frame into ProtocolError rejection', async () => {
+  await t.test('parses error response frame into ProtocolError rejection', async () => {
     const client = new CreeperClient({ host: 'localhost', port: 9999 });
     client.socket = { write() {} };
 
@@ -139,7 +139,7 @@ test('JSON frame request stringification and response parsing', (t) => {
     });
   });
 
-  t.test('handles event frames', () => {
+  await t.test('handles event frames', () => {
     const client = new CreeperClient({ host: 'localhost', port: 9999 });
     let emittedEvent = null;
     let emittedData = null;
@@ -161,7 +161,7 @@ test('JSON frame request stringification and response parsing', (t) => {
     assert.deepEqual(emittedData, { line: 'Server started' });
   });
 
-  t.test('ignores invalid JSON frames gracefully', () => {
+  await t.test('ignores invalid JSON frames gracefully', () => {
     const client = new CreeperClient({ host: 'localhost', port: 9999 });
     assert.doesNotThrow(() => {
       client._onData(Buffer.from('invalid json line\n'));
