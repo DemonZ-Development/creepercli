@@ -2,7 +2,7 @@
 
 - URL: https://modrinth.com/project/creepercli
 - Project ID: `fPKEvBZo` (already wired into the plugin's update checker)
-- Summary: `Remote Minecraft admin over an SSH tunnel. Files, console, commands.` (72 chars)
+- Summary: `Remote Minecraft admin from your terminal. Files, console, commands.` (72 chars)
 - Loaders: Paper, Spigot
 - Game versions: 1.21.x
 - Categories: server utility, server management
