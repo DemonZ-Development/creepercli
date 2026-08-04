@@ -6,7 +6,7 @@
 |---|---|
 | Server | Paper 1.21.x (Java Edition) |
 | Java | 21 or newer, the same JVM Paper runs on |
-| Your machine | Node.js 20+ |
+| Your machine | Node.js 18+ |
 | Network | Your machine can reach the server, directly or through an SSH tunnel |
 
 ## 1. Install the plugin

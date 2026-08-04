@@ -109,7 +109,7 @@ Only if `restart` is in `exec.allowlist`. It is by default; remove it if you don
 Create separate users. Edit locks prevent file conflicts; the audit log attributes actions to individuals.
 
 **Does the CLI need npm dependencies?**
-It has one runtime dependency, `qrcode-terminal`, and runs on Node.js 20+.
+It has one runtime dependency, `qrcode-terminal`, and runs on Node.js 18+.
 
 **What does the plugin send to bStats?**
 Anonymous usage metrics: plugin and server versions, Java, OS, player count, online-mode, plus the charts listed in [configuration.md](configuration.md#usage-metrics-bstats). Disable in `plugins/bStats/config.yml`.

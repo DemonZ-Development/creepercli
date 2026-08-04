@@ -11,7 +11,7 @@ CreeperCLI is a security tool. For vulnerabilities (path escapes, auth bypass, r
 ## Development setup
 
 - Plugin: JDK 21 and Maven. `mvn -B package` in `plugin/`; `mvn test` for the PathSanitizer suite.
-- CLI: Node.js 20+. `npm install` in `cli/`; `npm test` for tests.
+- CLI: Node.js 18+. `npm install` in `cli/`; `npm test` for tests.
 
 ## Pull requests
 

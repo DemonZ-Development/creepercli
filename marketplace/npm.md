@@ -2,7 +2,7 @@
 
 - URL: https://www.npmjs.com/package/creepercli
 - Status: Live, v1.0.0, published 2026-08-04
-- Requires: Node.js 20+, the CreeperCLI plugin on the server
+- Requires: Node.js 18+, the CreeperCLI plugin on the server
 
 ## What is already live
 

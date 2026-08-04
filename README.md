@@ -7,7 +7,7 @@ CreeperCLI is a remote administration tool in two parts:
 | Component | Location | What it does |
 |---|---|---|
 | **Plugin** (Java 21, Paper 1.21+) | `plugin/` | Runs inside the server. Owns authentication, the file sandbox, allowlisted console commands, monitoring, and live log streaming over a small TCP protocol. |
-| **CLI** (Node.js 20+, no dependencies) | `cli/` | Installs from npm. Gives you an interactive shell, local-editor workflow, verified file transfers, live console stream, and monitoring dashboards. |
+| **CLI** (Node.js 18+, no dependencies) | `cli/` | Installs from npm. Gives you an interactive shell, local-editor workflow, verified file transfers, live console stream, and monitoring dashboards. |
 
 Both parts are required. The plugin does nothing without a client; the CLI is a client for this plugin.
 
@@ -63,7 +63,7 @@ Ready-to-post listings for Modrinth, SpigotMC, Hangar, CurseForge, npm, and GitH
 ## Development
 
 - Plugin: JDK 21 and Maven. `mvn -B package` to build in `plugin/`; `mvn test` for the PathSanitizer suite.
-- CLI: Node.js 20+. `npm install` in `cli/`; `npm test` for tests.
+- CLI: Node.js 18+. `npm install` in `cli/`; `npm test` for tests.
 
 ## Releases
 
