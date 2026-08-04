@@ -17,6 +17,8 @@ CreeperCLI gives you a terminal into your Minecraft server. A plugin runs on the
 
 ### Commands
 
+#### One-shot (from your terminal)
+
 | Command | What it does |
 |---|---|
 | `creepercli ls <path>` | List directory |
@@ -34,6 +36,18 @@ CreeperCLI gives you a terminal into your Minecraft server. A plugin runs on the
 | `creepercli passwd` | Change password |
 | `creepercli totp setup` | Enable 2FA |
 | `creepercli logout` | Kill session |
+
+#### REPL mode (drop the prefix)
+
+Type `creepercli repl` to enter the interactive shell. Then just type commands directly:
+
+```
+> ls /
+> cat server.properties
+> exec list
+> stats
+> exit
+```
 
 ### Server console commands
 
