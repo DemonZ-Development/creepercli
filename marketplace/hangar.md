@@ -75,6 +75,4 @@ ssh -N -L 45678:127.0.0.1:45678 user@server
 
 Everything lives in `plugins/CreeperCLI/config.yml`. When you update the plugin, missing keys get added on their own, so your config survives upgrades. The ones people touch most: `network.host`, `network.port`, `auth.session-timeout-minutes`, `sandbox.server-root`, `exec.allowlist`, and `limits.commands-per-second`.
 
-The plugin sends basic usage stats to bStats: versions, OS, player count, online-mode. No files, commands, or usernames. Shut it off in `plugins/bStats/config.yml` if you'd rather not.
-
 CreeperCLI grants remote, privileged control of a Minecraft server. The creator is not responsible for how you use this tool.
