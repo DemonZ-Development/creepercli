@@ -1,33 +1,108 @@
+# ==============================================================================
+#                                 CreeperCLI
+#                        A DemonZDevelopment Project
+#
+# Documentation: https://github.com/DemonZDevelopment/creepercli
+# Discord Support: https://discord.com/invite/zCkE44hsBR
+# ==============================================================================
+
+# Internal configuration format version. Used by the auto-migration engine to
+# seamlessly inject new default settings on plugin updates without overwriting
+# your custom passwords, ports, or allowlist settings.
+config-version: 1
+
+# ------------------------------------------------------------------------------
+# NETWORK SETTINGS
+# ------------------------------------------------------------------------------
 network:
-  host: 127.0.0.1
+  # Host IP address to bind the TCP listener socket to ("0.0.0.0" listens on all interfaces).
+  host: "0.0.0.0"
+
+  # TCP port for remote administration connections (default: 45678).
+  # Must be an open/allocated port on your hosting provider. (Requires server restart).
   port: 45678
+
+  # Maximum concurrent active TCP connections allowed before new sockets are rejected.
   max-connections: 16
+
+  # Maximum allowed size (in bytes) for a single incoming or outgoing protocol payload (10 MB).
   max-payload-bytes: 10485760
+
+# ------------------------------------------------------------------------------
+# AUTHENTICATION & SECURITY SETTINGS
+# ------------------------------------------------------------------------------
 auth:
+  # Inactivity duration (in minutes) before an authenticated CLI session expires.
   session-timeout-minutes: 15
+
+  # Rate limiter for login attempts per IP address to prevent brute-force attacks.
   login-limiter:
     max-attempts: 3
     window-minutes: 5
+
+  # Automated IP banning (Fail2Ban) after repeated authentication failures.
   fail2ban:
     max-failures: 3
     window-minutes: 10
     ban-minutes: 10
+
+# ------------------------------------------------------------------------------
+# SANDBOX & FILE JAIL SETTINGS
+# ------------------------------------------------------------------------------
 sandbox:
-  server-root: ""
+  # Directory path used as the security jail root for all file operations (cat, ls, edit, cpush, cpull).
+  # - Use "." or "" to set the root to your main server directory (parent of plugins/).
+  # - Relative paths starting with "/" or "~" inside CLI resolve within this sandbox root.
+  # - Path traversal outside this root is strictly blocked (E_PATH_ESCAPE).
+  server-root: "."
+
+# ------------------------------------------------------------------------------
+# CONSOLE COMMAND EXECUTION & ALLOWLIST
+# ------------------------------------------------------------------------------
 exec:
+  # Maximum execution time (in seconds) for a Minecraft console command before timing out.
   timeout-seconds: 30
+
+  # Allowlist of console command patterns permitted to run remotely via "creepercli exec <command>".
+  # Space-delimited tokens with "*" wildcards are supported. Commands not matching any pattern are denied.
   allowlist:
     - "list"
     - "whitelist *"
     - "say *"
     - "restart"
+
+# ------------------------------------------------------------------------------
+# API RATE LIMITS & FILE LOCKING
+# ------------------------------------------------------------------------------
 limits:
+  # Maximum API requests allowed per second per authenticated session.
   commands-per-second: 30
+
+  # Automatic expiration time (in minutes) for active file editing locks if a client disconnects.
   file-lock-ttl-minutes: 5
+
+  # Chunk size (in bytes) used for streaming file uploads/downloads via cpush and cpull (64 KB).
   transfer-chunk-size: 65536
+
+  # Maximum total file size (in bytes) allowed for a single file transfer (1 GB).
   max-transfer-bytes: 1073741824
+
+# ------------------------------------------------------------------------------
+# MONITORING & CONSOLE STREAMING
+# ------------------------------------------------------------------------------
 monitor:
+  # Number of console log history lines buffered in memory for real-time streaming (creepercli log).
   log-buffer-lines: 500
+
+  # Refresh interval (in seconds) for the live terminal dashboard (creepercli top).
   top-refresh-seconds: 2
+
+  # Set to true to output detailed RPC action dispatches and IP payload logs directly to server console.
+  debug-log: false
+
+# ------------------------------------------------------------------------------
+# AUDIT LOGGING
+# ------------------------------------------------------------------------------
 audit:
+  # Maximum log file size (in MB) for plugins/CreeperCLI/creepercli-audit.log before automatic rotation.
   max-mb: 10

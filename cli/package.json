@@ -1,9 +1,9 @@
 {
-  "name": "creeper-cli",
+  "name": "creepercli",
   "version": "1.0.0",
   "description": "Remote administration CLI for Minecraft (Paper/Spigot) servers running the CreeperCLI plugin",
   "author": "DemonZDevelopment",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "type": "commonjs",
   "main": "src/index.js",
   "bin": {
@@ -11,10 +11,16 @@
   },
   "files": [
     "bin",
-    "src"
+    "src",
+    "README.md",
+    "LICENSE"
   ],
   "engines": {
     "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test",
+    "start": "node bin/creepercli.js"
   },
   "dependencies": {
     "qrcode-terminal": "^0.12.0"
@@ -28,14 +34,15 @@
     "cli",
     "remote",
     "server",
-    "creeper"
+    "creeper",
+    "creepercli"
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/DemonZDevelopment/creepercli.git"
+    "url": "git+https://github.com/DemonZ-Development/creepercli.git"
   },
   "bugs": {
-    "url": "https://github.com/DemonZDevelopment/creepercli/issues"
+    "url": "https://github.com/DemonZ-Development/creepercli/issues"
   },
-  "homepage": "https://github.com/DemonZDevelopment/creepercli"
+  "homepage": "https://github.com/DemonZ-Development/creepercli"
 }

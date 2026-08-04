@@ -1,3 +1,19 @@
+/*
+ * Copyright 2026 DemonZDevelopment
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package dev.demonzdevelopment.creepercli;
 
 import at.favre.lib.crypto.bcrypt.BCrypt;
@@ -19,23 +35,34 @@ public final class AdminCommand implements TabExecutor {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length == 0) {
-            sender.sendMessage("Usage: /creepercli <status|reload|user>");
+            sender.sendMessage("Usage: /creepercli <status|reload|user|update|help>");
             return true;
         }
         switch (args[0].toLowerCase(Locale.ROOT)) {
             case "status" -> status(sender);
             case "reload" -> {
                 plugin.reloadConfigs();
-                sender.sendMessage("CreeperCLI configuration reloaded");
+                sender.sendMessage("CreeperCLI configuration reloaded (config version: " + plugin.cfg().configVersion() + ")");
             }
             case "user" -> users(sender, args);
-            default -> sender.sendMessage("Usage: /creepercli <status|reload|user>");
+            case "update" -> update(sender);
+            case "help" -> help(sender);
+            default -> sender.sendMessage("Usage: /creepercli <status|reload|user|update|help>");
         }
         return true;
     }
 
+    private void help(CommandSender sender) {
+        sender.sendMessage("=== CreeperCLI Slash Commands ===");
+        sender.sendMessage("  /creepercli status     - Show server listener & connection stats");
+        sender.sendMessage("  /creepercli reload     - Reload config.yml & user store");
+        sender.sendMessage("  /creepercli user       - Manage users: add <name> <pass> | remove <name> | list");
+        sender.sendMessage("  /creepercli update     - Check for updates on Modrinth");
+    }
+
     private void status(CommandSender sender) {
         sender.sendMessage("CreeperCLI status:");
+        sender.sendMessage("  Config Version: " + plugin.cfg().configVersion());
         sender.sendMessage("  Listener: " + plugin.cfg().networkHost() + ":" + plugin.cfg().networkPort());
         sender.sendMessage("  Connections: " + plugin.server().connectionCount());
         sender.sendMessage("  Sessions: " + plugin.sessions().count());
@@ -43,9 +70,24 @@ public final class AdminCommand implements TabExecutor {
         sender.sendMessage("  Edit locks: " + plugin.locks().count());
         sender.sendMessage("  Log subscribers: " + plugin.logs().subscriberCount());
         sender.sendMessage("  Users: " + plugin.users().count());
+        sender.sendMessage("  Debug Logging: " + plugin.cfg().debugLog());
         sender.sendMessage("  TPS (1m/5m/15m): " + plugin.tps().tps(60) + " / " + plugin.tps().tps(300) + " / " + plugin.tps().tps(900));
         long up = plugin.uptimeMillis() / 1000;
         sender.sendMessage("  Uptime: " + (up / 86400) + "d " + ((up % 86400) / 3600) + "h " + ((up % 3600) / 60) + "m");
+    }
+
+    private void update(CommandSender sender) {
+        sender.sendMessage("Checking for updates on Modrinth...");
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+            if (plugin.updateChecker() != null) {
+                plugin.updateChecker().checkForUpdates();
+                if (plugin.updateChecker().isUpdateAvailable()) {
+                    sender.sendMessage("Update available: v" + plugin.updateChecker().latestVersion() + " (https://modrinth.com/project/creepercli)");
+                } else {
+                    sender.sendMessage("CreeperCLI is up to date (v" + plugin.getPluginMeta().getVersion() + ")");
+                }
+            }
+        });
     }
 
     private void users(CommandSender sender, String[] args) {
@@ -95,7 +137,7 @@ public final class AdminCommand implements TabExecutor {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return List.of("status", "reload", "user");
+            return List.of("status", "reload", "user", "update", "help");
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("user")) {
             return List.of("add", "remove", "list");

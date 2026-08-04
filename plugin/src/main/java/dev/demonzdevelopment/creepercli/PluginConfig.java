@@ -1,3 +1,19 @@
+/*
+ * Copyright 2026 DemonZDevelopment
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package dev.demonzdevelopment.creepercli;
 
 import org.bukkit.configuration.file.FileConfiguration;
@@ -6,6 +22,8 @@ import java.nio.file.Path;
 import java.util.List;
 
 public final class PluginConfig {
+    public static final int CURRENT_CONFIG_VERSION = 1;
+
     private final CreeperCLIPlugin plugin;
     private final FileConfiguration c;
 
@@ -13,10 +31,34 @@ public final class PluginConfig {
         this.plugin = plugin;
         plugin.saveDefaultConfig();
         this.c = plugin.getConfig();
+        migrateIfNeeded();
+    }
+
+    private void migrateIfNeeded() {
+        int version = c.getInt("config-version", 0);
+        if (version < CURRENT_CONFIG_VERSION) {
+            c.set("config-version", CURRENT_CONFIG_VERSION);
+            if (!c.contains("monitor.debug-log")) {
+                c.set("monitor.debug-log", false);
+            }
+            if (!c.contains("sandbox.server-root")) {
+                c.set("sandbox.server-root", ".");
+            }
+            plugin.saveConfig();
+            plugin.getLogger().info("Configuration auto-migrated to version " + CURRENT_CONFIG_VERSION);
+        }
+    }
+
+    public int configVersion() {
+        return c.getInt("config-version", 1);
+    }
+
+    public boolean debugLog() {
+        return c.getBoolean("monitor.debug-log", false);
     }
 
     public String networkHost() {
-        return c.getString("network.host", "127.0.0.1");
+        return c.getString("network.host", "0.0.0.0");
     }
 
     public int networkPort() {

@@ -1,9 +1,14 @@
 node_modules/
 target/
 dist/
+dependency-reduced-pom.xml
 *.jar
 *.log
 .creepercli/
 .DS_Store
 .idea/
 *.iml
+agent/
+cli/package-lock.json
+generate_assets.py
+assets/generate_assets.py

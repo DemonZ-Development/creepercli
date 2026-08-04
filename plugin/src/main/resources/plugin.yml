@@ -3,7 +3,7 @@ version: 1.0.0
 main: dev.demonzdevelopment.creepercli.CreeperCLIPlugin
 api-version: '1.21'
 description: Remote administration TCP plugin with a hardened file sandbox
-website: https://github.com/DemonZDevelopment/creepercli
+website: https://github.com/DemonZ-Development/creepercli
 commands:
   creepercli:
     description: CreeperCLI administration

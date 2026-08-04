@@ -1,3 +1,19 @@
+/*
+ * Copyright 2026 DemonZDevelopment
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 'use strict';
 
 const fs = require('fs');
@@ -33,8 +49,16 @@ async function editFile(ctx, remotePath) {
     fs.writeFileSync(tmpFile, cat.content, { mode: 0o600 });
 
     const editor = ctx.cfg.editor;
+    const parts = (editor.match(/"[^"]+"|'[^']+'|\S+/g) || []).map((p) => {
+      if ((p.startsWith('"') && p.endsWith('"')) || (p.startsWith("'") && p.endsWith("'"))) {
+        return p.slice(1, -1);
+      }
+      return p;
+    });
+    const execName = parts[0] || editor;
+    const args = parts.slice(1);
     await new Promise((resolve, reject) => {
-      const child = spawn(editor, [tmpFile], { stdio: 'inherit', shell: true });
+      const child = spawn(execName, [...args, tmpFile], { stdio: 'inherit' });
       child.on('error', (err) => reject(new Error(`Could not start editor "${editor}": ${err.message}`)));
       child.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`Editor exited with code ${code}`))));
     });

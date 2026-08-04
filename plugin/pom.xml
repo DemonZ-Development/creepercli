@@ -11,7 +11,13 @@
 
   <name>CreeperCLI Plugin</name>
   <description>Remote administration TCP plugin for Minecraft servers</description>
-  <url>https://github.com/DemonZDevelopment/creepercli</url>
+  <licenses>
+    <license>
+      <name>Apache License, Version 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
 
   <properties>
     <maven.compiler.release>21</maven.compiler.release>
@@ -50,9 +56,26 @@
       <version>0.10.2</version>
     </dependency>
     <dependency>
+      <groupId>org.bstats</groupId>
+      <artifactId>bstats-bukkit</artifactId>
+      <version>3.2.1</version>
+    </dependency>
+    <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
       <version>5.10.2</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <version>5.11.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-junit-jupiter</artifactId>
+      <version>5.11.0</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -75,6 +98,10 @@
                 <relocation>
                   <pattern>at.favre.lib</pattern>
                   <shadedPattern>dev.demonzdevelopment.creepercli.lib.at.favre.lib</shadedPattern>
+                </relocation>
+                <relocation>
+                  <pattern>org.bstats</pattern>
+                  <shadedPattern>dev.demonzdevelopment.creepercli.metrics</shadedPattern>
                 </relocation>
               </relocations>
               <filters>

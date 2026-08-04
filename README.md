@@ -1,68 +1,74 @@
 # CreeperCLI
 
-Remote server administration for Minecraft (Paper/Spigot) from your terminal — by **DemonZDevelopment**.
+Manage your Paper or Spigot Minecraft server from the terminal.
 
-CreeperCLI ships two components:
+CreeperCLI is a remote administration tool in two parts:
 
 | Component | Location | What it does |
 |---|---|---|
-| **CreeperCLI Plugin** (Java 21, Paper/Spigot) | `plugin/` | Runs on the Minecraft server. Owns the file sandbox, auth, exec allowlist, monitoring and log streaming. |
-| **CreeperCLI CLI** (Node.js 18+) | `cli/` | Installed via `npm i -g creeper-cli`. Gives you an interactive REPL, editor workflow, transfers and live dashboards. |
+| **Plugin** (Java 21, Paper 1.21+) | `plugin/` | Runs inside the server. Owns authentication, the file sandbox, allowlisted console commands, monitoring, and live log streaming over a small TCP protocol. |
+| **CLI** (Node.js 20+, no dependencies) | `cli/` | Installs from npm. Gives you an interactive shell, local-editor workflow, verified file transfers, live console stream, and monitoring dashboards. |
+
+Both parts are required. The plugin does nothing without a client; the CLI is a client for this plugin.
 
 ## Features
 
-- **Hardened sandbox** — `PathSanitizer` with `toRealPath()` symlink defeat, traversal-blocking normalization, chroot-style path jail.
-- **Authentication** — bcrypt password hashes, RFC 6238 TOTP (2FA) with QR setup, session tokens with 15-minute inactivity expiry, per-IP auth limiter (3/5min) and Fail2Ban (3 failures → 10 min ban).
-- **Filesystem** — `pwd`, `ls -la`, `cd`, `tree`, `cat`, `head`, `tail`, `wc`, `touch`, `mkdir`, `rm -r`, `cp -r`, `mv`, `info`.
-- **Editing** — `edit` opens the remote file in your local `$EDITOR`; server-side locks with 5-minute TTL prevent conflicting edits.
-- **Search** — `grep` (recursive, case-insensitive, line numbers) and `find` (glob).
-- **Transfers** — `cpush`, `cpull`, `csync` with 64KB chunked NDJSON frames and SHA-256 verification.
-- **Server control** — `exec` through a default-deny allowlist, scheduled on the Bukkit main thread with `CompletableFuture` (never blocks the network thread), `say`/`restart` shortcuts.
-- **Monitoring** — `stats`, `tps`, `top` dashboard, live `log --grep` console streaming via a custom `java.util.logging.Handler` on `Bukkit.getLogger()`.
-- **Security hardening** — per-session token bucket (30 commands/s default), append-only audit log with 10MB rotation, strict temp-file hygiene.
+- **Sandboxed filesystem**. Every path resolves inside the server root. `..` escapes, symlink swaps, and absolute paths that leave the jail are rejected with `E_PATH_ESCAPE`.
+- **Password plus TOTP 2FA**. Bcrypt (cost 12) hashes, RFC 6238 one-time codes with QR setup, 15-minute session tokens bound to your IP.
+- **Brute-force defense**. Per-IP login limiter (3 failures / 5 min) and fail2ban (3 failures, 10-minute ban).
+- **Console control without full access**. Only allowlisted commands run: `list`, `say *`, `whitelist *`, `restart` by default. Add your own patterns.
+- **Full file toolset**. `ls`, `cat`, `edit` in your local `$EDITOR`, `grep`, `find`, `tree`, `cp`, `mv`, `rm`, `head`, `tail`, `wc`.
+- **Verified transfers**. `cpush`, `cpull`, and `csync` stream in 64 KB chunks and check SHA-256 on both ends.
+- **Live monitoring**. `stats` for CPU/RAM/disk, `tps`, a `top` dashboard, and a live console stream with `log --grep`.
+- **Accountability**. Every action appends to an audit log with timestamp, source IP, user, and parameters.
 
-## Quickstart
+## Install
 
-1. Install the plugin: put `CreeperCLI-1.0.0.jar` into the server's `plugins/` folder and restart.
-2. Add a user: `/creepercli user add steve <strong-password>` (in-game, as operator).
-3. Install the CLI: `npm i -g creeper-cli`.
-4. `creepercli login`, then run `creepercli repl` (or any one-shot command like `creepercli ls plugins`).
+1. Drop `CreeperCLI-1.0.0.jar` into the server's `plugins/` folder and restart. First boot creates `plugins/CreeperCLI/config.yml`.
+2. Create a user from the server console: `/creepercli user add steve <strong-password>`.
+3. Install the CLI on your computer: `npm install -g creepercli`.
+4. Connect: `creepercli login --host <server-ip> --port 45678`. The CLI drops you into the interactive shell.
 
-See `docs/QUICKSTART.md` for the full walkthrough.
+Full walkthrough: [wiki/getting-started.md](wiki/getting-started.md).
 
-## Security warnings (read these first)
+## Read the security notes first
 
-- The server **must** run as a **non-root** OS user — CreeperCLI is a full admin channel.
-- The TCP port **must only** be reachable over an **SSH tunnel** (default bind `127.0.0.1`). Do not expose it publicly.
-- Every request is authenticated (bcrypt + optional TOTP), rate-limited, audited, and jail-bound to the server root.
+The plugin binds `0.0.0.0:45678` by default so hosted panels and containers work out of the box. That means the port is reachable from anywhere that can reach the machine.
 
-See `docs/SECURITY.md` for the threat model and hardening checklist.
+- On a machine you control, set `network.host: "127.0.0.1"` in `plugins/CreeperCLI/config.yml` and reach it through an SSH tunnel: `ssh -N -L 45678:127.0.0.1:45678 user@server`.
+- Run the server as a non-root OS user. CreeperCLI is a full admin channel.
+- Enable 2FA with `creepercli totp setup`. The limiter and fail2ban only slow attackers; 2FA stops credential theft.
+
+The full threat model and hardening checklist is in [wiki/security.md](wiki/security.md).
 
 ## Documentation
 
-The full documentation lives in [`wiki/`](wiki/README.md):
+The wiki in [`wiki/`](wiki/README.md) is the single source of truth.
 
-- [`wiki/getting-started.md`](wiki/getting-started.md) — install, first user, first login, SSH tunnel
-- [`wiki/cli-commands.md`](wiki/cli-commands.md) — every CLI command, flag and example
-- [`wiki/console-commands.md`](wiki/console-commands.md) — `/creepercli` administration commands
-- [`wiki/configuration.md`](wiki/configuration.md) — full `config.yml` reference
-- [`wiki/security.md`](wiki/security.md) — threat model, auth, 2FA, sandbox, rate limits
-- [`wiki/protocol.md`](wiki/protocol.md) — wire protocol, actions and error codes
-- [`wiki/advanced.md`](wiki/advanced.md) — editing, syncing, monitoring, scripting
-- [`wiki/troubleshooting.md`](wiki/troubleshooting.md) — common errors, FAQ, E2E harness
+| Page | Covers |
+|---|---|
+| [Getting started](wiki/getting-started.md) | Install, first user, first login, SSH tunnel |
+| [CLI commands](wiki/cli-commands.md) | Every command, flag, and example |
+| [Console commands](wiki/console-commands.md) | `/creepercli` administration |
+| [Configuration](wiki/configuration.md) | Every `config.yml` key, auto-migration |
+| [Security](wiki/security.md) | Threat model, 2FA, sandbox, rate limits |
+| [Protocol](wiki/protocol.md) | Wire format, actions, events, error codes |
+| [Plugin API](wiki/plugin-api.md) | Extension API for Paper/Spigot developers |
+| [Architecture](wiki/architecture.md) | Threading model, sandbox design, extensions |
+| [Advanced](wiki/advanced.md) | Editing, sync, monitoring, scripting |
+| [Troubleshooting](wiki/troubleshooting.md) | Common errors, FAQ, tests |
 
-(`docs/` contains the original pre-wiki quickstart/commands/security notes.)
+Ready-to-post listings for Modrinth, SpigotMC, Hangar, CurseForge, npm, and GitHub Releases live in [`marketplace/`](marketplace/).
 
 ## Development
 
-- Plugin: Java 21, Maven, Paper API 1.21+ — `mvn -B package` in `plugin/`
-- CLI: Node.js 18+ — `npm install` in `cli/`
-- Tests: `mvn test` in `plugin/` (PathSanitizer suite)
+- Plugin: JDK 21 and Maven. `mvn -B package` to build in `plugin/`; `mvn test` for the PathSanitizer suite.
+- CLI: Node.js 20+. `npm install` in `cli/`; `npm test` for tests.
 
 ## Releases
 
-SemVer, v1.0.0. GitHub Actions build the plugin on release tags (`v*`) and publish the CLI to npm. See `CONTRIBUTING.md`.
+SemVer with `v*` tags. The plugin builds and the CLI publishes to npm on tag. v1.0.0 is out on npm as `creepercli`. See [CHANGELOG.md](CHANGELOG.md) and [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-MIT — see `LICENSE`.
+Apache License 2.0. See [LICENSE](LICENSE).

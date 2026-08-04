@@ -1,3 +1,19 @@
+/*
+ * Copyright 2026 DemonZDevelopment
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 'use strict';
 
 const fsCmds = require('./fs');
@@ -45,6 +61,7 @@ const COMMANDS = [
   { name: 'help', run: help, desc: 'Show this help' },
   { name: 'exit', run: exitCmd, desc: 'Leave the REPL' },
   { name: 'quit', run: exitCmd, desc: 'Leave the REPL' },
+  { name: 'q', run: exitCmd, desc: 'Leave the REPL' },
 ];
 
 function find(name) {
@@ -55,8 +72,14 @@ function splitArgs(input) {
   const args = [];
   let cur = '';
   let quote = null;
+  let escaped = false;
   for (const ch of input) {
-    if (quote) {
+    if (escaped) {
+      cur += ch;
+      escaped = false;
+    } else if (ch === '\\') {
+      escaped = true;
+    } else if (quote) {
       if (ch === quote) quote = null;
       else cur += ch;
     } else if (ch === '"' || ch === "'") {
@@ -70,13 +93,22 @@ function splitArgs(input) {
       cur += ch;
     }
   }
+  if (escaped) cur += '\\';
   if (cur) args.push(cur);
   return args;
 }
 
 async function runCommand(ctx, input) {
-  const trimmed = input.trim();
+  let trimmed = input.trim();
   if (!trimmed || trimmed.startsWith('#')) return 0;
+  
+  // Automatically strip redundant "creepercli" or "creepercli.exe" prefix if typed inside the REPL
+  if (trimmed.startsWith('creepercli.exe ')) {
+    trimmed = trimmed.slice(15).trim();
+  } else if (trimmed.startsWith('creepercli ')) {
+    trimmed = trimmed.slice(11).trim();
+  }
+
   const args = splitArgs(trimmed);
   const cmd = find(args[0]);
   if (!cmd) {

@@ -1,3 +1,19 @@
+/*
+ * Copyright 2026 DemonZDevelopment
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package dev.demonzdevelopment.creepercli;
 
 public final class Protocol {
@@ -62,6 +78,7 @@ public final class Protocol {
     public static final String ERR_SESSION_EXPIRED = "E_SESSION_EXPIRED";
     public static final String ERR_INVALID_PARAMS = "E_INVALID_PARAMS";
     public static final String ERR_BAD_REQUEST = "E_BAD_REQUEST";
+    public static final String ERR_UNKNOWN_ACTION = "E_UNKNOWN_ACTION";
     public static final String ERR_PATH_ESCAPE = "E_PATH_ESCAPE";
     public static final String ERR_NOT_FOUND = "E_NOT_FOUND";
     public static final String ERR_IS_DIRECTORY = "E_IS_DIRECTORY";

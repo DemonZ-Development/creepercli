@@ -1,8 +1,25 @@
+/*
+ * Copyright 2026 DemonZDevelopment
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 'use strict';
 
 const net = require('net');
 const crypto = require('crypto');
 const { EventEmitter } = require('events');
+const { StringDecoder } = require('string_decoder');
 const { ProtocolError, ERR } = require('./protocol');
 
 class CreeperClient extends EventEmitter {
@@ -13,6 +30,7 @@ class CreeperClient extends EventEmitter {
     this.timeoutMs = timeoutMs;
     this.socket = null;
     this.buffer = '';
+    this._decoder = new StringDecoder('utf8');
     this.pending = new Map();
   }
 
@@ -29,7 +47,7 @@ class CreeperClient extends EventEmitter {
   }
 
   _onData(chunk) {
-    this.buffer += chunk.toString('utf8');
+    this.buffer += this._decoder.write(chunk);
     let idx;
     while ((idx = this.buffer.indexOf('\n')) !== -1) {
       const line = this.buffer.slice(0, idx).trim();
