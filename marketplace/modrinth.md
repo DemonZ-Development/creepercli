@@ -2,6 +2,7 @@
 
 - URL: https://modrinth.com/project/creepercli
 - Project ID: `fPKEvBZo` (already wired into the plugin's update checker)
+- Summary: `Remote Minecraft server admin from your shell. File sync, console, TPS, 2FA.` (73 chars)
 - Loaders: Paper, Spigot
 - Game versions: 1.21.x
 - Categories: server utility, server management
