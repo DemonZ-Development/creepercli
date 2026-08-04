@@ -1,3 +1,19 @@
+/*
+ * Copyright 2026 DemonZDevelopment
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 'use strict';
 
 const fs = require('fs');
@@ -29,8 +45,9 @@ function clearProgress() {
 
 async function cpush(ctx, args) {
   const rest = args.filter((a) => !a.startsWith('--'));
-  const [local, remote] = rest;
+  let [local, remote] = rest;
   if (!local || !remote) throw new Error('Usage: cpush <local-file> <remote-path>');
+  remote = remote.replace(/\\/g, '/');
   const stat = fs.statSync(local);
   if (!stat.isFile()) throw new Error('Local path must be a file');
   const sha = await sha256File(local);
@@ -67,8 +84,9 @@ async function cpush(ctx, args) {
 }
 
 async function cpull(ctx, args) {
-  const [remote, local] = args.filter((a) => !a.startsWith('--'));
+  let [remote, local] = args.filter((a) => !a.startsWith('--'));
   if (!remote || !local) throw new Error('Usage: cpull <remote-path> <local-file>');
+  remote = remote.replace(/\\/g, '/');
   const start = await ctx.client.request('xfer.pull.start', { path: remote });
   const { transferId, size, sha256: expectedSha, chunkSize } = start;
   const part = local + '.creepercli-part';
@@ -101,8 +119,9 @@ async function cpull(ctx, args) {
 }
 
 async function csync(ctx, args) {
-  const [remoteDir, localDir] = args.filter((a) => a !== '-y' && !a.startsWith('--'));
+  let [remoteDir, localDir] = args.filter((a) => a !== '-y' && !a.startsWith('--'));
   if (!remoteDir || !localDir) throw new Error('Usage: csync <remote-dir> <local-dir> [--yes]');
+  remoteDir = remoteDir.replace(/\\/g, '/');
   const yes = args.includes('--yes') || args.includes('-y') || !!(ctx.flags && ctx.flags.yes);
   await ctx.client.request('fs.mkdir', { path: remoteDir, parents: true }).catch(() => {});
 
@@ -164,7 +183,9 @@ async function csync(ctx, args) {
 }
 
 function joinRemote(base, rel) {
-  return (base.endsWith('/') ? base : base + '/') + rel;
+  const cleanBase = base.replace(/\\/g, '/');
+  const cleanRel = rel.replace(/\\/g, '/');
+  return (cleanBase.endsWith('/') ? cleanBase : cleanBase + '/') + cleanRel;
 }
 
 function walkLocal(dir) {
@@ -184,7 +205,7 @@ function walkLocal(dir) {
       } catch {
         continue;
       }
-      const rel = (prefix ? prefix + '/' : '') + name;
+      const rel = ((prefix ? prefix + '/' : '') + name).replace(/\\/g, '/');
       if (st.isDirectory()) walk(p, rel);
       else if (st.isFile()) map.set(rel, { size: st.size, mtime: Math.floor(st.mtimeMs) });
     }
@@ -193,4 +214,4 @@ function walkLocal(dir) {
   return map;
 }
 
-module.exports = { cpush, cpull, csync };
+module.exports = { cpush, cpull, csync, joinRemote, walkLocal };

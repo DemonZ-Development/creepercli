@@ -1,9 +1,27 @@
+/*
+ * Copyright 2026 DemonZDevelopment
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package dev.demonzdevelopment.creepercli;
 
+import dev.demonzdevelopment.creepercli.api.ActionRegistry;
 import dev.demonzdevelopment.creepercli.auth.AuthLimiter;
 import dev.demonzdevelopment.creepercli.auth.AuthManager;
 import dev.demonzdevelopment.creepercli.auth.Fail2Ban;
 import dev.demonzdevelopment.creepercli.auth.TotpManager;
+import dev.demonzdevelopment.creepercli.auth.User;
 import dev.demonzdevelopment.creepercli.auth.UserStore;
 import dev.demonzdevelopment.creepercli.bukkit.BukkitBridge;
 import dev.demonzdevelopment.creepercli.bukkit.ExecAllowlist;
@@ -18,10 +36,17 @@ import dev.demonzdevelopment.creepercli.sandbox.PathSanitizer;
 import dev.demonzdevelopment.creepercli.security.AuditLogger;
 import dev.demonzdevelopment.creepercli.security.FileLockManager;
 import dev.demonzdevelopment.creepercli.transfer.TransferManager;
+import dev.demonzdevelopment.creepercli.update.UpdateChecker;
+import org.bstats.bukkit.Metrics;
+import org.bstats.charts.AdvancedPie;
+import org.bstats.charts.SimplePie;
+import org.bstats.charts.SingleLineChart;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 
 public final class CreeperCLIPlugin extends JavaPlugin {
     private final long startTime = System.currentTimeMillis();
@@ -43,7 +68,10 @@ public final class CreeperCLIPlugin extends JavaPlugin {
     private ExecAllowlist allowlist;
     private BukkitBridge bridge;
     private CommandRouter router;
+    private ActionRegistry actionRegistry;
     private TcpServer server;
+    private UpdateChecker updateChecker;
+    private Metrics metrics;
 
     @Override
     public void onEnable() {
@@ -73,6 +101,7 @@ public final class CreeperCLIPlugin extends JavaPlugin {
         stats = new StatsCollector(this);
         allowlist = new ExecAllowlist(cfg);
         bridge = new BukkitBridge(this);
+        actionRegistry = new ActionRegistry();
         router = new CommandRouter(this);
         getCommand("creepercli").setExecutor(new AdminCommand(this));
         server = new TcpServer(this);
@@ -83,12 +112,16 @@ public final class CreeperCLIPlugin extends JavaPlugin {
             setEnabled(false);
             return;
         }
+        updateChecker = new UpdateChecker(this);
+        updateChecker.start();
+        startMetrics();
         scheduleSweeps();
-        getLogger().info("CreeperCLI enabled. TCP listener on " + cfg.networkHost() + ":" + cfg.networkPort());
+        getLogger().info("CreeperCLI enabled (config v" + cfg.configVersion() + "). TCP listener on " + cfg.networkHost() + ":" + cfg.networkPort());
     }
 
     @Override
     public void onDisable() {
+        if (metrics != null) metrics.shutdown();
         if (server != null) server.stop();
         if (audit != null) audit.stop();
         if (logs != null) logs.detach();
@@ -103,6 +136,25 @@ public final class CreeperCLIPlugin extends JavaPlugin {
             authManager.purgePending();
         }, 20L * 60, 20L * 60);
         getServer().getScheduler().runTaskTimerAsynchronously(this, locks::sweep, 20L * 30, 20L * 30);
+    }
+
+    private void startMetrics() {
+        metrics = new Metrics(this, 33129);
+        metrics.addCustomChart(new SimplePie("bind_host", () -> cfg.networkHost()));
+        metrics.addCustomChart(new SimplePie("debug_log", () -> cfg.debugLog() ? "enabled" : "disabled"));
+        metrics.addCustomChart(new AdvancedPie("two_fa_users", () -> {
+            Map<String, Integer> m = new HashMap<>();
+            int with = 0;
+            int without = 0;
+            for (User u : users.all()) {
+                if (u.totpSecret() == null || u.totpSecret().isEmpty()) without++;
+                else with++;
+            }
+            m.put("with 2FA", with);
+            m.put("without 2FA", without);
+            return m;
+        }));
+        metrics.addCustomChart(new SingleLineChart("user_count", users::count));
     }
 
     public void onConnectionClosed(ClientConnection conn) {
@@ -127,7 +179,7 @@ public final class CreeperCLIPlugin extends JavaPlugin {
         } catch (IOException e) {
             getLogger().severe("Failed to reinitialize sandbox root: " + e.getMessage());
         }
-        getLogger().info("CreeperCLI configuration reloaded");
+        getLogger().info("CreeperCLI configuration reloaded (v" + cfg.configVersion() + ")");
     }
 
     public long uptimeMillis() {
@@ -202,8 +254,16 @@ public final class CreeperCLIPlugin extends JavaPlugin {
         return router;
     }
 
+    public ActionRegistry actionRegistry() {
+        return actionRegistry;
+    }
+
     public TcpServer server() {
         return server;
+    }
+
+    public UpdateChecker updateChecker() {
+        return updateChecker;
     }
 
     public Path serverRoot() {

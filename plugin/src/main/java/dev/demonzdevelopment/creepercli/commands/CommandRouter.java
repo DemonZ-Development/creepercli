@@ -1,3 +1,19 @@
+/*
+ * Copyright 2026 DemonZDevelopment
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package dev.demonzdevelopment.creepercli.commands;
 
 import com.google.gson.JsonObject;
@@ -5,6 +21,7 @@ import dev.demonzdevelopment.creepercli.CreeperCLIPlugin;
 import dev.demonzdevelopment.creepercli.CreeperError;
 import dev.demonzdevelopment.creepercli.Json;
 import dev.demonzdevelopment.creepercli.Protocol;
+import dev.demonzdevelopment.creepercli.api.ActionHandler;
 import dev.demonzdevelopment.creepercli.net.ClientConnection;
 import dev.demonzdevelopment.creepercli.net.Session;
 
@@ -89,6 +106,9 @@ public final class CommandRouter {
                 if (!valid.limiter.tryAcquire()) {
                     throw new CreeperError(Protocol.ERR_RATE_LIMITED, "Command rate limit exceeded");
                 }
+                if (plugin.cfg() != null && plugin.cfg().debugLog()) {
+                    plugin.getLogger().info("[DEBUG] Dispatching RPC action '" + action + "' from IP " + valid.ip + " (user: " + valid.username + ")");
+                }
                 plugin.audit().log(valid.ip, valid.username, action, params.toString());
                 return dispatch(action, params, conn);
             }
@@ -143,7 +163,13 @@ public final class CommandRouter {
                 case Protocol.ACTION_MONITOR_LOG_START -> done(monitorCommands.logStart(conn, params));
                 case Protocol.ACTION_MONITOR_LOG_STOP -> done(monitorCommands.logStop(conn));
 
-                default -> throw new CreeperError(Protocol.ERR_BAD_REQUEST, "Unknown action: " + action);
+                default -> {
+                    ActionHandler customHandler = plugin.actionRegistry().getHandler(action);
+                    if (customHandler != null) {
+                        yield customHandler.handle(conn, params);
+                    }
+                    throw new CreeperError(Protocol.ERR_UNKNOWN_ACTION, "Unknown action: " + action);
+                }
             };
         } catch (CreeperError e) {
             throw e;

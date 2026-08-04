@@ -1,3 +1,19 @@
+/*
+ * Copyright 2026 DemonZDevelopment
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 'use strict';
 
 const { CreeperClient } = require('./client');
@@ -6,8 +22,11 @@ const session = require('./session');
 const { startRepl } = require('./repl');
 const { runCommand } = require('./commands');
 const { doLogin } = require('./commands/auth');
+const { friendly } = require('./protocol');
+const { checkUpdate } = require('./update');
 
 async function main(argv) {
+  checkUpdate();
   const flags = parseFlags(argv);
   const cfg = applyFlags(loadConfig(), flags);
   if (flags.help) {
@@ -19,10 +38,22 @@ async function main(argv) {
 
   if (cmd === 'login') {
     const client = await connect(cfg);
+    const ctx = { client, cfg, username: null, cwd: '/', exit: false, flags };
     try {
-      await doLogin({ client, cfg, username: null, cwd: '/' });
-    } finally {
+      const res = await doLogin(ctx);
+      if (res && res.token && process.stdout.isTTY) {
+        console.log('Entering interactive REPL shell (type "help" for commands, "exit" or "q" to quit)...\n');
+        startRepl(ctx);
+        return 0;
+      }
+    } catch (err) {
+      console.error(`\nError: ${friendly(err)}\n`);
       client.close();
+      process.exit(1);
+    } finally {
+      if (!ctx.exit && !process.stdout.isTTY) {
+        client.close();
+      }
     }
     return 0;
   }
@@ -84,13 +115,21 @@ function parseFlags(argv) {
   const flags = { args: [], host: null, port: null, editor: null, refresh: null, yes: false, help: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
-    if (a === '--host') flags.host = argv[++i];
-    else if (a === '--port') flags.port = parseInt(argv[++i], 10);
-    else if (a === '--editor') flags.editor = argv[++i];
-    else if (a === '--refresh') flags.refresh = parseInt(argv[++i], 10);
-    else if (a === '--yes' || a === '-y') flags.yes = true;
-    else if (a === '--help' || a === '-h') flags.help = true;
-    else flags.args.push(a);
+    if (a === '--host') {
+      if (i + 1 < argv.length) flags.host = argv[++i];
+    } else if (a === '--port') {
+      if (i + 1 < argv.length) flags.port = parseInt(argv[++i], 10);
+    } else if (a === '--editor') {
+      if (i + 1 < argv.length) flags.editor = argv[++i];
+    } else if (a === '--refresh') {
+      if (i + 1 < argv.length) flags.refresh = parseInt(argv[++i], 10);
+    } else if (a === '--yes' || a === '-y') {
+      flags.yes = true;
+    } else if (a === '--help' || a === '-h') {
+      flags.help = true;
+    } else {
+      flags.args.push(a);
+    }
   }
   return flags;
 }
@@ -101,8 +140,25 @@ async function connect(cfg) {
     await client.connect();
     return client;
   } catch (err) {
-    console.error(`Cannot connect to ${cfg.host}:${cfg.port} — ${err.code || err.message}`);
-    console.error('Is the CreeperCLI plugin running and is the port reachable? (use an SSH tunnel)');
+    const codeStr = err.code || err.message;
+    console.error(`\nError: Cannot connect to server at ${cfg.host}:${cfg.port} (${codeStr})\n`);
+    console.error(`--------------------------------------------------------------------------------`);
+    console.error(`CREEPER CLI SETUP & TROUBLESHOOTING GUIDE`);
+    console.error(`--------------------------------------------------------------------------------\n`);
+    console.error(`1. INSTALL THE PLUGIN ON YOUR MINECRAFT SERVER:`);
+    console.error(`   * Place CreeperCLI-1.0.0.jar inside your server's 'plugins/' folder.`);
+    console.error(`   * Start or restart your server (Paper / Spigot 1.21+).\n`);
+    console.error(`2. CREATE YOUR ADMIN USER IN SERVER CONSOLE:`);
+    console.error(`   * Open your server console (or run in-game as OP):`);
+    console.error(`     /creepercli user add <username> <password>\n`);
+    console.error(`3. VERIFY NETWORK & PORT FORWARDING:`);
+    console.error(`   * CreeperCLI listens on TCP port ${cfg.port} by default.`);
+    console.error(`   * If connecting to a remote server, specify host & port flags:`);
+    console.error(`     creepercli login --host <your-server-ip> --port ${cfg.port}`);
+    console.error(`   * Or set up an SSH tunnel:`);
+    console.error(`     ssh -L ${cfg.port}:127.0.0.1:${cfg.port} user@<your-server-ip>\n`);
+    console.error(`--------------------------------------------------------------------------------`);
+    console.error(`Documentation: https://github.com/DemonZ-Development/creepercli\n`);
     process.exit(1);
   }
 }

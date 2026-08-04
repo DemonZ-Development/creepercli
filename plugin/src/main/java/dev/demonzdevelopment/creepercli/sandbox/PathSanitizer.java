@@ -1,3 +1,19 @@
+/*
+ * Copyright 2026 DemonZDevelopment
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package dev.demonzdevelopment.creepercli.sandbox;
 
 import java.io.File;
@@ -26,6 +42,9 @@ public final class PathSanitizer {
     public Path resolve(String cwd, String requested) throws PathEscapeException {
         if (requested == null || requested.isEmpty()) {
             requested = ".";
+        }
+        if (requested.equals("~") || requested.startsWith("~/")) {
+            requested = "/" + (requested.length() > 2 ? requested.substring(2) : "");
         }
         if (requested.indexOf('\0') >= 0) {
             throw new PathEscapeException("NUL byte in path");
