@@ -15,6 +15,6 @@ Security is not optional. Bcrypt password hashing (cost 12). Optional TOTP two-f
 
 The plugin binds `0.0.0.0:45678` by default for hosting panel compatibility. Set `network.host: "127.0.0.1"` in the config and connect through an SSH tunnel for production use.
 
-Install the jar in `plugins/`, create a user from the server console, and connect from your terminal.
+Install the jar in `plugins/` and restart the server. Create a user from the server console with `/creepercli user add <name> <password>`. On your machine, run `npm install -g creepercli` then `creepercli login --host <ip> --port 45678`.
 
 CreeperCLI grants remote, privileged control of a Minecraft server. The creator is not responsible for how you use this tool.
