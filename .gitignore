@@ -9,6 +9,5 @@ dependency-reduced-pom.xml
 .idea/
 *.iml
 agent/
-cli/package-lock.json
 generate_assets.py
 assets/generate_assets.py
