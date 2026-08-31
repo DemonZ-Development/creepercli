@@ -1,18 +1,4 @@
-/*
- * Copyright 2026 DemonZDevelopment
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+
 
 package dev.demonzdevelopment.creepercli.commands;
 
@@ -55,7 +41,7 @@ public final class CommandRouter {
                 data.addProperty("pong", true);
                 data.addProperty("protocol", Protocol.VERSION);
                 data.addProperty("serverTime", System.currentTimeMillis());
-                data.addProperty("pluginVersion", plugin.getPluginMeta().getVersion());
+                data.addProperty("pluginVersion", plugin.version());
                 return done(data);
             }
             case Protocol.ACTION_AUTH_LOGIN -> {
@@ -109,7 +95,7 @@ public final class CommandRouter {
                 if (plugin.cfg() != null && plugin.cfg().debugLog()) {
                     plugin.getLogger().info("[DEBUG] Dispatching RPC action '" + action + "' from IP " + valid.ip + " (user: " + valid.username + ")");
                 }
-                plugin.audit().log(valid.ip, valid.username, action, params.toString());
+                plugin.audit().log(valid.ip, valid.username, action, redactParams(action, params).toString());
                 return dispatch(action, params, conn);
             }
         }
@@ -189,5 +175,22 @@ public final class CommandRouter {
 
     private static CompletableFuture<JsonObject> done(JsonObject data) {
         return CompletableFuture.completedFuture(data);
+    }
+
+    private static final java.util.Set<String> SENSITIVE_KEYS = java.util.Set.of(
+            "password", "oldPassword", "newPassword", "totp", "code"
+    );
+
+    static JsonObject redactParams(String action, JsonObject params) {
+        if (params == null) return new JsonObject();
+        JsonObject copy = new JsonObject();
+        for (java.util.Map.Entry<String, com.google.gson.JsonElement> e : params.entrySet()) {
+            if (SENSITIVE_KEYS.contains(e.getKey())) {
+                copy.addProperty(e.getKey(), "***");
+            } else {
+                copy.add(e.getKey(), e.getValue());
+            }
+        }
+        return copy;
     }
 }

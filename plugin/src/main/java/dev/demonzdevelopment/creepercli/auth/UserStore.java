@@ -1,74 +1,90 @@
-/*
- * Copyright 2026 DemonZDevelopment
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 package dev.demonzdevelopment.creepercli.auth;
 
 import dev.demonzdevelopment.creepercli.CreeperCLIPlugin;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.YamlConfiguration;
+import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.SafeConstructor;
+import org.yaml.snakeyaml.LoaderOptions;
 
-import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.Writer;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class UserStore {
     private final CreeperCLIPlugin plugin;
-    private final File file;
+    private final Path file;
     private final Map<String, User> users = new ConcurrentHashMap<>();
 
     public UserStore(CreeperCLIPlugin plugin) {
         this.plugin = plugin;
-        this.file = new File(plugin.getDataFolder(), "creepercli-users.yml");
+        this.file = plugin.dataFolder().resolve("creepercli-users.yml");
     }
 
     public synchronized void load() {
         users.clear();
-        if (!file.exists()) return;
-        YamlConfiguration yaml = YamlConfiguration.loadConfiguration(file);
-        ConfigurationSection section = yaml.getConfigurationSection("users");
-        if (section == null) return;
-        for (String name : section.getKeys(false)) {
-            String pass = section.getString(name + ".password");
-            String totp = section.getString(name + ".totp");
-            if (pass != null) {
-                users.put(name, new User(name, pass, totp == null || totp.isEmpty() ? null : totp));
+        if (Files.notExists(file)) return;
+        try (InputStream in = Files.newInputStream(file)) {
+            Object loaded = new Yaml(new SafeConstructor(new LoaderOptions())).load(in);
+            if (loaded == null) return;
+            if (!(loaded instanceof Map<?, ?> root)) {
+                if (plugin != null) plugin.getLogger().warning("Users file is not a YAML map; ignoring (existing users cleared)");
+                return;
             }
+            Object section = root.get("users");
+            if (section == null) return;
+            if (!(section instanceof Map<?, ?> map)) {
+                if (plugin != null) plugin.getLogger().warning("'users' section in users file is not a map; ignoring");
+                return;
+            }
+            for (Map.Entry<?, ?> e : map.entrySet()) {
+                String name = String.valueOf(e.getKey());
+                if (!(e.getValue() instanceof Map<?, ?> entry)) continue;
+                Object pass = entry.get("password");
+                if (pass == null) continue;
+                Object totp = entry.get("totp");
+                String totpSecret = totp == null || String.valueOf(totp).isEmpty() ? null : String.valueOf(totp);
+                users.put(name, new User(name, String.valueOf(pass), totpSecret));
+            }
+        } catch (IOException e) {
+            if (plugin != null) plugin.getLogger().severe("Failed to read users file: " + e.getMessage());
         }
     }
 
+    @SuppressWarnings("unchecked")
     public synchronized void save() {
-        YamlConfiguration yaml = new YamlConfiguration();
+        Map<String, Object> out = new LinkedHashMap<>();
+        Map<String, Object> section = new LinkedHashMap<>();
         for (User u : users.values()) {
-            yaml.set("users." + u.username() + ".password", u.passwordHash());
-            yaml.set("users." + u.username() + ".totp", u.totpSecret());
+            Map<String, Object> entry = new LinkedHashMap<>();
+            entry.put("password", u.passwordHash());
+            entry.put("totp", u.totpSecret());
+            section.put(u.username(), entry);
         }
+        out.put("users", section);
+        DumperOptions options = new DumperOptions();
+        options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
+        options.setIndent(2);
         try {
-            File tmp = new File(file.getParentFile(), file.getName() + ".tmp");
-            yaml.save(tmp);
+            Files.createDirectories(file.getParent());
+            Path tmp = file.resolveSibling(file.getFileName() + ".tmp");
+            try (Writer w = Files.newBufferedWriter(tmp)) {
+                new Yaml(options).dump(out, w);
+            }
             try {
-                Files.move(tmp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+                Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
             } catch (IOException e) {
-                Files.move(tmp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING);
             }
         } catch (IOException e) {
-            plugin.getLogger().severe("Failed to save users file: " + e.getMessage());
+            if (plugin != null) plugin.getLogger().severe("Failed to save users file: " + e.getMessage());
         }
     }
 

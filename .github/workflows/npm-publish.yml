@@ -31,3 +31,4 @@ jobs:
         working-directory: cli
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+

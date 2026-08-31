@@ -1,0 +1,7 @@
+name: CreeperCLI
+main: dev.demonzdevelopment.creepercli.platform.bungee.BungeeLoader
+version: 1.1.0
+author: DemonZDevelopment
+description: Remote administration TCP plugin with a hardened file sandbox (BungeeCord and Waterfall)
+website: https://github.com/DemonZ-Development/creepercli
+

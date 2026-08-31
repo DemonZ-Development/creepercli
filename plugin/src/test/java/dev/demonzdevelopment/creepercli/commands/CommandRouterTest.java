@@ -1,18 +1,4 @@
-/*
- * Copyright 2026 DemonZDevelopment
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+
 
 package dev.demonzdevelopment.creepercli.commands;
 
@@ -34,7 +20,7 @@ import dev.demonzdevelopment.creepercli.security.AuditLogger;
 import dev.demonzdevelopment.creepercli.security.FileLockManager;
 import dev.demonzdevelopment.creepercli.security.RateLimiter;
 import dev.demonzdevelopment.creepercli.transfer.TransferManager;
-import io.papermc.paper.plugin.configuration.PluginMeta;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -82,9 +68,7 @@ class CommandRouterTest {
         Fail2Ban fail2ban = mock(Fail2Ban.class);
         AuthLimiter authLimiter = mock(AuthLimiter.class);
 
-        PluginMeta pluginMeta = mock(PluginMeta.class);
-        when(pluginMeta.getVersion()).thenReturn("1.0.0");
-        when(plugin.getPluginMeta()).thenReturn(pluginMeta);
+        when(plugin.version()).thenReturn("1.0.0");
 
         when(plugin.cfg()).thenReturn(cfg);
         when(plugin.sessions()).thenReturn(sessionManager);
@@ -137,7 +121,7 @@ class CommandRouterTest {
 
     @Test
     void testMissingParametersReturnsErrInvalidParamsInAuthLogin() throws CreeperError {
-        JsonObject params = new JsonObject(); // Empty params (missing username/password)
+        JsonObject params = new JsonObject(); 
         when(authManager.login(eq(params), any(ClientConnection.class)))
                 .thenThrow(new CreeperError(Protocol.ERR_INVALID_PARAMS, "username and password are required"));
 
@@ -149,7 +133,7 @@ class CommandRouterTest {
     void testMissingParametersReturnsErrInvalidParamsInFsCat() {
         when(conn.session()).thenReturn(validSession);
 
-        JsonObject params = new JsonObject(); // Missing required "path" parameter
+        JsonObject params = new JsonObject(); 
 
         CreeperError error = assertThrows(CreeperError.class, () -> router.route(conn, Protocol.ACTION_FS_CAT, params));
         assertEquals(Protocol.ERR_INVALID_PARAMS, error.code());
@@ -160,7 +144,7 @@ class CommandRouterTest {
     void testMissingParametersReturnsErrInvalidParamsInFsTouch() {
         when(conn.session()).thenReturn(validSession);
 
-        JsonObject params = new JsonObject(); // Missing required "path" parameter
+        JsonObject params = new JsonObject(); 
 
         CreeperError error = assertThrows(CreeperError.class, () -> router.route(conn, Protocol.ACTION_FS_TOUCH, params));
         assertEquals(Protocol.ERR_INVALID_PARAMS, error.code());
@@ -171,7 +155,7 @@ class CommandRouterTest {
     void testMissingParametersReturnsErrInvalidParamsInFsMkdir() {
         when(conn.session()).thenReturn(validSession);
 
-        JsonObject params = new JsonObject(); // Missing required "path" parameter
+        JsonObject params = new JsonObject(); 
 
         CreeperError error = assertThrows(CreeperError.class, () -> router.route(conn, Protocol.ACTION_FS_MKDIR, params));
         assertEquals(Protocol.ERR_INVALID_PARAMS, error.code());
@@ -180,7 +164,7 @@ class CommandRouterTest {
 
     @Test
     void testUnauthenticatedAccessReturnsErrUnauthorized() {
-        when(conn.session()).thenReturn(null); // No session set
+        when(conn.session()).thenReturn(null); 
 
         JsonObject params = new JsonObject();
 

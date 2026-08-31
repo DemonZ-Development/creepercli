@@ -1,20 +1,6 @@
-/*
- * Copyright 2026 DemonZDevelopment
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
-package dev.demonzdevelopment.creepercli.bukkit;
+
+package dev.demonzdevelopment.creepercli.platform.bukkit;
 
 import dev.demonzdevelopment.creepercli.CreeperCLIPlugin;
 import dev.demonzdevelopment.creepercli.CreeperError;
@@ -34,37 +20,37 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-public final class BukkitBridge {
-    public record ExecResult(boolean success, List<String> lines, long elapsedMs) {
+
+public final class BukkitConsoleBridge implements dev.demonzdevelopment.creepercli.platform.ConsoleBridge {
+    private final BukkitLoader loader;
+    private final CreeperCLIPlugin core;
+
+    public BukkitConsoleBridge(BukkitLoader loader, CreeperCLIPlugin core) {
+        this.loader = loader;
+        this.core = core;
     }
 
-    private final CreeperCLIPlugin plugin;
-
-    public BukkitBridge(CreeperCLIPlugin plugin) {
-        this.plugin = plugin;
-    }
-
-    public CompletableFuture<ExecResult> exec(String command, int timeoutSeconds) {
-        CompletableFuture<ExecResult> future = new CompletableFuture<>();
+    public CompletableFuture<Result> exec(String command, int timeoutSeconds) {
+        CompletableFuture<Result> future = new CompletableFuture<>();
         CapturingSender sender = new CapturingSender();
-        long mark = plugin.logs().mark();
-        java.io.File logFile = new java.io.File(plugin.cfg().serverRoot().toFile(), "logs/latest.log");
+        long mark = core.logs().mark();
+        java.io.File logFile = new java.io.File(core.cfg().serverRoot().toFile(), "logs/latest.log");
         long fileOffset = logFile.isFile() ? logFile.length() : -1;
         long start = System.nanoTime();
-        Bukkit.getScheduler().runTask(plugin, () -> {
+        Bukkit.getScheduler().runTask(loader, () -> {
             boolean ok;
             try {
                 ok = Bukkit.getServer().dispatchCommand(sender.asSender(), command);
             } catch (Throwable t) {
-                plugin.getLogger().warning("exec threw on main thread: " + t);
+                core.getLogger().warning("exec threw on main thread: " + t);
                 future.completeExceptionally(new CreeperError(Protocol.ERR_INTERNAL, "Command execution failed: " + t.getMessage()));
                 return;
             }
             boolean okFinal = ok;
-            Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, () -> {
+            Bukkit.getScheduler().runTaskLaterAsynchronously(loader, () -> {
                 long elapsed = (System.nanoTime() - start) / 1_000_000;
                 List<String> all = new ArrayList<>(sender.lines());
-                all.addAll(plugin.logs().since(mark));
+                all.addAll(core.logs().since(mark));
                 if (fileOffset >= 0) {
                     try (java.io.RandomAccessFile raf = new java.io.RandomAccessFile(logFile, "r")) {
                         raf.seek(fileOffset);
@@ -73,13 +59,13 @@ public final class BukkitBridge {
                             if (!line.isBlank()) all.add(line);
                         }
                     } catch (IOException e) {
-                        plugin.getLogger().warning("exec log capture failed: " + e.getMessage());
+                        core.getLogger().warning("exec log capture failed: " + e.getMessage());
                     }
                 }
-                future.complete(new ExecResult(okFinal, all, elapsed));
+                future.complete(new Result(okFinal, all, elapsed));
             }, 6);
         });
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+        Bukkit.getScheduler().runTaskLater(loader, () -> {
             if (!future.isDone()) {
                 future.completeExceptionally(new CreeperError(Protocol.ERR_TIMEOUT,
                         "exec timed out after " + timeoutSeconds + "s"));
@@ -95,16 +81,7 @@ public final class BukkitBridge {
             InvocationHandler handler = (Object proxy, Method method, Object[] args) -> {
                 switch (method.getName()) {
                     case "sendMessage" -> {
-                        if (args == null) {
-                            return null;
-                        }
-                        if (args[0] instanceof String s) {
-                            lines.add(s);
-                        } else if (args[0] instanceof String[] arr) {
-                            for (String s : arr) lines.add(s);
-                        } else if (args[0] instanceof Component comp) {
-                            lines.add(PlainTextComponentSerializer.plainText().serialize(comp));
-                        }
+                        capture(args);
                         return null;
                     }
                     case "getName" -> {
@@ -131,6 +108,24 @@ public final class BukkitBridge {
                     Server.class.getClassLoader(),
                     new Class<?>[]{CommandSender.class, ConsoleCommandSender.class},
                     handler);
+        }
+
+        
+        
+        private void capture(Object[] args) {
+            if (args == null) {
+                return;
+            }
+            try {
+                if (args[0] instanceof String s) {
+                    lines.add(s);
+                } else if (args[0] instanceof String[] arr) {
+                    for (String s : arr) lines.add(s);
+                } else if (args[0] instanceof Component comp) {
+                    lines.add(PlainTextComponentSerializer.plainText().serialize(comp));
+                }
+            } catch (NoClassDefFoundError ignored) {
+            }
         }
 
         private static Object defaultReturn(Class<?> type) {

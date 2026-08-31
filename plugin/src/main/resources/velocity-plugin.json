@@ -1,0 +1,12 @@
+{
+  "id": "creepercli",
+  "name": "CreeperCLI",
+  "version": "1.1.0",
+  "description": "Remote administration TCP plugin with a hardened file sandbox",
+  "url": "https://github.com/DemonZ-Development/creepercli",
+  "authors": [
+    "DemonZDevelopment"
+  ],
+  "dependencies": [],
+  "main": "dev.demonzdevelopment.creepercli.platform.velocity.VelocityLoader"
+}

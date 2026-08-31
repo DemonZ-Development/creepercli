@@ -13,3 +13,4 @@ permissions:
   creepercli.admin:
     description: Manage CreeperCLI users and configuration
     default: op
+

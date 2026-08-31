@@ -1,18 +1,3 @@
-/*
- * Copyright 2026 DemonZDevelopment
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 package dev.demonzdevelopment.creepercli.update;
 
@@ -21,32 +6,40 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import dev.demonzdevelopment.creepercli.CreeperCLIPlugin;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerJoinEvent;
 
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
-public final class UpdateChecker implements Listener {
+public final class UpdateChecker {
     private static final String MODRINTH_PROJECT_ID = "fPKEvBZo";
     private static final String MODRINTH_API_URL = "https://api.modrinth.com/v2/project/" + MODRINTH_PROJECT_ID + "/version";
 
     private final CreeperCLIPlugin plugin;
+    private final ScheduledExecutorService executor;
+    private ScheduledFuture<?> task;
     private String latestVersion = null;
-    private boolean updateAvailable = false;
+    private volatile boolean updateAvailable = false;
 
-    public UpdateChecker(CreeperCLIPlugin plugin) {
+    public UpdateChecker(CreeperCLIPlugin plugin, ScheduledExecutorService executor) {
         this.plugin = plugin;
+        this.executor = executor;
     }
 
     public void start() {
-        plugin.getServer().getPluginManager().registerEvents(this, plugin);
-        // Run initial check 5 seconds after startup, then silently every 4 hours (20 ticks * 3600 sec * 4)
-        plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, this::checkForUpdates, 20L * 5, 20L * 60 * 60 * 4);
+        task = executor.scheduleWithFixedDelay(this::checkForUpdates, 5, 4 * 3600L, TimeUnit.SECONDS);
+    }
+
+    public void stop() {
+        if (task != null) {
+            task.cancel(false);
+            task = null;
+        }
     }
 
     public void checkForUpdates() {
@@ -56,7 +49,7 @@ public final class UpdateChecker implements Listener {
             conn.setRequestMethod("GET");
             conn.setConnectTimeout(10000);
             conn.setReadTimeout(10000);
-            conn.setRequestProperty("User-Agent", "DemonZDevelopment/CreeperCLI/" + plugin.getPluginMeta().getVersion() + " (https://modrinth.com/project/creepercli)");
+            conn.setRequestProperty("User-Agent", "DemonZDevelopment/CreeperCLI/" + plugin.version() + " (https://modrinth.com/project/creepercli)");
 
             if (conn.getResponseCode() == 200) {
                 try (InputStreamReader reader = new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8)) {
@@ -67,7 +60,7 @@ public final class UpdateChecker implements Listener {
                             JsonObject latest = versions.get(0).getAsJsonObject();
                             if (latest.has("version_number")) {
                                 latestVersion = latest.get("version_number").getAsString();
-                                String currentVersion = plugin.getPluginMeta().getVersion();
+                                String currentVersion = plugin.version();
                                 if (isNewerVersion(currentVersion, latestVersion)) {
                                     updateAvailable = true;
                                     plugin.getLogger().info("[UpdateChecker] A new version of CreeperCLI (v" + latestVersion + ") is available on Modrinth!");
@@ -106,13 +99,6 @@ public final class UpdateChecker implements Listener {
             return Integer.parseInt(s.replaceAll("[^0-9]", ""));
         } catch (NumberFormatException e) {
             return 0;
-        }
-    }
-
-    @EventHandler
-    public void onPlayerJoin(PlayerJoinEvent event) {
-        if (updateAvailable && event.getPlayer().isOp()) {
-            event.getPlayer().sendMessage("[CreeperCLI] A new update (v" + latestVersion + ") is available on Modrinth!");
         }
     }
 

@@ -1,18 +1,4 @@
-/*
- * Copyright 2026 DemonZDevelopment
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+
 
 package dev.demonzdevelopment.creepercli.monitor;
 
@@ -60,12 +46,30 @@ public final class LogStreamer {
         this.plugin = plugin;
     }
 
+        public void feed(String level, String message, long millis) {
+        LogRecord record = new LogRecord(toJulLevel(level), message == null ? "" : message);
+        record.setMillis(millis);
+        onPublish(record);
+    }
+
+    private static java.util.logging.Level toJulLevel(String name) {
+        if (name != null) {
+            switch (name.toUpperCase(java.util.Locale.ROOT)) {
+                case "ERROR", "FATAL": return java.util.logging.Level.SEVERE;
+                case "WARN": return java.util.logging.Level.WARNING;
+                case "DEBUG": return java.util.logging.Level.FINE;
+                case "TRACE": return java.util.logging.Level.FINEST;
+            }
+        }
+        return java.util.logging.Level.INFO;
+    }
+
     public void attach() {
-        Bukkit.getLogger().addHandler(handler);
+        plugin.platform().logger().addHandler(handler);
     }
 
     public void detach() {
-        Bukkit.getLogger().removeHandler(handler);
+        plugin.platform().logger().removeHandler(handler);
     }
 
     private void onPublish(LogRecord record) {
@@ -86,14 +90,16 @@ public final class LogStreamer {
         data.addProperty("ts", record.getMillis());
         for (Map.Entry<ClientConnection, Pattern> entry : subscribers.entrySet()) {
             Pattern filter = entry.getValue();
-            if (filter == null || filter.matcher(display).find()) {
+            if (filter == NULL_PATTERN || filter.matcher(display).find()) {
                 entry.getKey().sendEvent(Protocol.EVENT_LOG_LINE, data);
             }
         }
     }
 
+    private static final Pattern NULL_PATTERN = Pattern.compile("(?!)");
+
     public void subscribe(ClientConnection conn, String grep) throws CreeperError {
-        Pattern pattern = null;
+        Pattern pattern = NULL_PATTERN;
         if (grep != null && !grep.isEmpty()) {
             try {
                 pattern = Pattern.compile(grep, Pattern.CASE_INSENSITIVE);
@@ -106,6 +112,10 @@ public final class LogStreamer {
 
     public void unsubscribe(ClientConnection conn) {
         subscribers.remove(conn);
+    }
+
+    public void unsubscribeAll() {
+        subscribers.clear();
     }
 
     public List<String> buffer() {

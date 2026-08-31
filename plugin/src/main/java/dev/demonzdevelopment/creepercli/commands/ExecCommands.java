@@ -1,18 +1,4 @@
-/*
- * Copyright 2026 DemonZDevelopment
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+
 
 package dev.demonzdevelopment.creepercli.commands;
 
@@ -20,10 +6,9 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import dev.demonzdevelopment.creepercli.CreeperCLIPlugin;
 import dev.demonzdevelopment.creepercli.CreeperError;
+import dev.demonzdevelopment.creepercli.ExecAllowlist;
 import dev.demonzdevelopment.creepercli.Json;
 import dev.demonzdevelopment.creepercli.Protocol;
-import dev.demonzdevelopment.creepercli.bukkit.BukkitBridge;
-import dev.demonzdevelopment.creepercli.bukkit.ExecAllowlist;
 import dev.demonzdevelopment.creepercli.net.ClientConnection;
 
 import java.util.concurrent.CompletableFuture;

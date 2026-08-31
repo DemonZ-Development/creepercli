@@ -1,18 +1,3 @@
-/*
- * Copyright 2026 DemonZDevelopment
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 package dev.demonzdevelopment.creepercli.monitor;
 
@@ -28,7 +13,7 @@ public final class TpsTracker {
     private final long[] samples = new long[SAMPLES];
     private final AtomicInteger cursor = new AtomicInteger();
     private volatile long lastTick = -1;
-    private int taskId = -1;
+    private AutoCloseable sampler;
 
     public TpsTracker(CreeperCLIPlugin plugin) {
         this.plugin = plugin;
@@ -36,15 +21,23 @@ public final class TpsTracker {
 
     public void start() {
         lastTick = -1;
-        taskId = plugin.getServer().getScheduler()
-                .runTaskTimer(plugin, this::onTick, 1L, 1L).getTaskId();
+        if (plugin.platform().tickLoopSupported()) {
+            sampler = plugin.platform().startTickSampler(this::onTick);
+        }
     }
 
     public void stop() {
-        if (taskId != -1) {
-            plugin.getServer().getScheduler().cancelTask(taskId);
-            taskId = -1;
+        if (sampler != null) {
+            try {
+                sampler.close();
+            } catch (Exception ignored) {
+            }
+            sampler = null;
         }
+    }
+
+    public boolean running() {
+        return sampler != null;
     }
 
     private void onTick() {
@@ -73,6 +66,14 @@ public final class TpsTracker {
 
     public JsonObject snapshot() {
         JsonObject o = new JsonObject();
+        o.addProperty("supported", running());
+        if (!running()) {
+            o.addProperty("tps1m", -1);
+            o.addProperty("tps5m", -1);
+            o.addProperty("tps15m", -1);
+            o.addProperty("tickMs", -1);
+            return o;
+        }
         o.addProperty("tps1m", round(tps(60)));
         o.addProperty("tps5m", round(tps(300)));
         o.addProperty("tps15m", round(tps(900)));

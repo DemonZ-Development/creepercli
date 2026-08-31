@@ -38,3 +38,4 @@ jobs:
         with:
           files: plugin/target/CreeperCLI-*.jar
           generate_release_notes: true
+
