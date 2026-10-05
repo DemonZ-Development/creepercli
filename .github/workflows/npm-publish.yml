@@ -37,6 +37,14 @@ jobs:
           npm audit --omit=dev --audit-level=high
           npm pack --dry-run
 
+      - name: Verify installed CLI command
+        working-directory: cli
+        run: |
+          package_dir=$(mktemp -d)
+          npm pack --pack-destination "$package_dir"
+          npm install --prefix "$package_dir" "$package_dir/creepercli-$(node -p "require('./package.json').version").tgz" --ignore-scripts --no-audit --no-fund
+          "$package_dir/node_modules/.bin/creepercli" --help
+
       - name: Check published version
         id: published
         working-directory: cli

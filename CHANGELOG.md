@@ -2,6 +2,15 @@
 
 All notable changes. Follows [Semantic Versioning](https://semver.org/).
 
+## [1.1.1] - 2026-10-05
+
+### Fixed
+
+- Restored the CLI launcher's Node shebang so npm-installed commands
+  invoke Node correctly on Windows, macOS, and Linux.
+- CI and npm release checks now install the packed CLI and run its
+  generated command before publication.
+
 ## [1.1.0] - 2026-10-05
 
 ### Added
