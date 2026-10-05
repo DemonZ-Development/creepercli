@@ -140,18 +140,20 @@ public final class FsCommands {
         requireFile(p);
         JsonArray arr = new JsonArray();
         int count = 0;
+        boolean truncated = false;
         try (BufferedReader r = Files.newBufferedReader(p, StandardCharsets.UTF_8)) {
             String line;
             while (count < lines && (line = r.readLine()) != null) {
                 arr.add(line);
                 count++;
             }
+            if (count == lines) truncated = r.readLine() != null;
         } catch (IOException e) {
             throw io(e);
         }
         JsonObject res = new JsonObject();
         res.add("lines", arr);
-        res.addProperty("truncated", count == lines);
+        res.addProperty("truncated", truncated);
         return res;
     }
 
@@ -169,17 +171,19 @@ public final class FsCommands {
                 ByteArrayOutputStream bo = new ByteArrayOutputStream();
                 int linesSeen = 0;
                 long pos = fileSize - 1;
+                raf.seek(pos);
+                if (raf.read() == '\n') pos--;
                 while (pos >= 0) {
                     raf.seek(pos);
                     int c = raf.read();
-                    bo.write(c);
                     if (c == '\n') {
                         linesSeen++;
                         if (linesSeen == lines) {
-                            truncated = true;
+                            truncated = pos > 0;
                             break;
                         }
                     }
+                    bo.write(c);
                     pos--;
                 }
                 byte[] bytes = bo.toByteArray();
@@ -330,6 +334,10 @@ public final class FsCommands {
             if (Files.isDirectory(s, LinkOption.NOFOLLOW_LINKS)) {
                 if (!recursive) {
                     throw new CreeperError(Protocol.ERR_IS_DIRECTORY, "src is a directory (use recursive)");
+                }
+                if (d.normalize().startsWith(s.normalize())) {
+                    throw new CreeperError(Protocol.ERR_INVALID_PARAMS,
+                            "Cannot copy a directory into itself: " + dst);
                 }
                 copyTree(s, d);
             } else {

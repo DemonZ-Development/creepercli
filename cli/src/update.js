@@ -22,14 +22,14 @@ function checkUpdate() {
 
     if (cache.lastCheck && now - cache.lastCheck < CHECK_INTERVAL_MS) {
       if (cache.latest && isNewerVersion(pkg.version, cache.latest)) {
-        console.log(`[Notice] A new version of creepercli (v${cache.latest}) is available! Run "npm install -g creeper-cli" to update.\n`);
+        console.log(`[Notice] A new version of creepercli (v${cache.latest}) is available! Run "npm install -g creepercli" to update.\n`);
       }
       return;
     }
 
-    const req = https.get('https://registry.npmjs.org/creeper-cli/latest', {
+    const req = https.get('https://registry.npmjs.org/creepercli/latest', {
       timeout: 2500,
-      headers: { 'User-Agent': `creeper-cli/${pkg.version}` }
+      headers: { 'User-Agent': `creepercli/${pkg.version}` }
     }, (res) => {
       if (res.statusCode !== 200) return;
       let body = '';
@@ -42,7 +42,7 @@ function checkUpdate() {
             fs.mkdirSync(DIR, { recursive: true, mode: 0o700 });
             fs.writeFileSync(UPDATE_FILE, JSON.stringify({ lastCheck: now, latest }), { mode: 0o600 });
             if (isNewerVersion(pkg.version, latest)) {
-              console.log(`[Notice] A new version of creepercli (v${latest}) is available! Run "npm install -g creeper-cli" to update.\n`);
+              console.log(`[Notice] A new version of creepercli (v${latest}) is available! Run "npm install -g creepercli" to update.\n`);
             }
           }
         } catch {
@@ -51,7 +51,7 @@ function checkUpdate() {
     });
 
     req.on('error', () => {});
-    req.end();
+    req.on('socket', (socket) => socket.unref());
   } catch {
   }
 }

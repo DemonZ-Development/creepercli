@@ -10,15 +10,16 @@ const { runCommand } = require('./commands');
 const { doLogin } = require('./commands/auth');
 const { friendly } = require('./protocol');
 const { checkUpdate } = require('./update');
+const pkg = require('../package.json');
 
 async function main(argv) {
-  checkUpdate();
   const flags = parseFlags(argv);
-  const cfg = applyFlags(loadConfig(), flags);
   if (flags.help) {
     printUsage();
     return 0;
   }
+  checkUpdate();
+  const cfg = applyFlags(loadConfig(), flags);
   const args = flags.args;
   const cmd = args[0];
 
@@ -35,7 +36,7 @@ async function main(argv) {
     } catch (err) {
       console.error(`\nError: ${friendly(err)}\n`);
       client.close();
-      process.exit(1);
+      return 1;
     } finally {
       if (!ctx.exit && !process.stdout.isTTY) {
         client.close();
@@ -68,6 +69,7 @@ async function main(argv) {
       const resume = await client.request('auth.resume', { token: creds.token }, { timeoutMs: 15000 });
       ctx.username = resume.username;
       ctx.cwd = resume.cwd || '/';
+      session.save({ ...creds, expiresAt: Date.now() + (resume.expiresInSeconds || 0) * 1000 });
     } catch (err) {
       if (err.code === 'E_SESSION_EXPIRED' || err.code === 'E_UNAUTHORIZED') {
         session.clear();
@@ -132,7 +134,7 @@ async function connect(cfg) {
     console.error(`CREEPER CLI SETUP & TROUBLESHOOTING GUIDE`);
     console.error(`--------------------------------------------------------------------------------\n`);
     console.error(`1. INSTALL THE PLUGIN ON YOUR MINECRAFT SERVER:`);
-    console.error(`   * Place CreeperCLI-1.0.0.jar inside your server's 'plugins/' folder.`);
+    console.error(`   * Place CreeperCLI-${pkg.version}.jar inside your server's 'plugins/' folder.`);
     console.error(`   * Start or restart your server (Paper / Spigot 1.21+).\n`);
     console.error(`2. CREATE YOUR ADMIN USER IN SERVER CONSOLE:`);
     console.error(`   * Open your server console (or run in-game as OP):`);
@@ -145,12 +147,13 @@ async function connect(cfg) {
     console.error(`     ssh -L ${cfg.port}:127.0.0.1:${cfg.port} user@<your-server-ip>\n`);
     console.error(`--------------------------------------------------------------------------------`);
     console.error(`Documentation: https://github.com/DemonZ-Development/creepercli\n`);
-    process.exit(1);
+    err.creepercliReported = true;
+    throw err;
   }
 }
 
 function printUsage() {
-  console.log(`CreeperCLI v1.0.0 — remote Minecraft administration
+  console.log(`CreeperCLI v${pkg.version} — remote Minecraft administration
 
 Usage:
   creepercli login                       Authenticate with the server

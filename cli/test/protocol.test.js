@@ -153,4 +153,19 @@ test('JSON frame request stringification and response parsing', async (t) => {
       client._onData(Buffer.from('invalid json line\n'));
     });
   });
+
+  await t.test('rejects responses with an incompatible protocol version', async () => {
+    const client = new CreeperClient({ host: 'localhost', port: 9999 });
+    client.socket = { write() {} };
+    const reqPromise = client.request('ping');
+    const id = Array.from(client.pending.keys())[0];
+    client._handleLine(JSON.stringify({ v: 999, type: 'response', id, ok: true, data: {} }));
+    await assert.rejects(reqPromise, (err) => err.code === ERR.BAD_REQUEST);
+  });
+
+  await t.test('rejects requests immediately after the socket closes', async () => {
+    const client = new CreeperClient({ host: 'localhost', port: 9999 });
+    client.socket = null;
+    await assert.rejects(client.request('ping'), /Connection closed/);
+  });
 });

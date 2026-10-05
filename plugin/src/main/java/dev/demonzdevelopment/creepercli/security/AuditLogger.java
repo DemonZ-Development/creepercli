@@ -64,7 +64,8 @@ public final class AuditLogger {
             try {
                 line = queue.poll(1, TimeUnit.SECONDS);
             } catch (InterruptedException e) {
-                break;
+                if (!running.get() && queue.isEmpty()) break;
+                continue;
             }
             if (line == null) continue;
             try {

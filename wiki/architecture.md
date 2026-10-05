@@ -6,7 +6,7 @@ CreeperCLI is two processes connected by a TCP socket speaking JSON lines.
 Your machine                           Server (Paper 1.21+)
 ┌─────────────────────┐                ┌──────────────────────────────────┐
 │ creepercli (Node)   │  TCP / JSON    │ CreeperCLI plugin                │
-│ REPL, transfers,    │◄──────────────►│ TcpServer (0.0.0.0:45678)        │
+│ REPL, transfers,    │◄──────────────►│ TcpServer (127.0.0.1:45678)      │
 │ dashboards          │  newline-      │ CommandRouter (auth + actions)   │
 └─────────────────────┘  delimited     │ Sandbox (server-root jail)       │
                                        │ ExecAllowlist                    │
@@ -16,7 +16,7 @@ Your machine                           Server (Paper 1.21+)
 
 ## Components
 
-- **`TcpServer`**: accepts sockets, parses NDJSON frames, enforces the connection cap, payload cap, and per-session rate limits. Binds `network.host:network.port`, default `0.0.0.0:45678`.
+- **`TcpServer`**: accepts sockets, parses NDJSON frames, enforces the connection cap, authentication deadline, payload cap, and per-session rate limits. Binds `network.host:network.port`, default `127.0.0.1:45678`.
 - **`CommandRouter`**: dispatches actions to handlers. Every action passes session verification and audit logging first.
 - **`PathSanitizer`**: resolves every file path against the sandbox root. It normalizes separators, strips NUL bytes and drive letters, and resolves symlinks with `toRealPath()` so a link can never escape the jail.
 - **`ExecAllowlist`**: pattern-matches console commands before dispatch.

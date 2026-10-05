@@ -25,7 +25,7 @@ public final class Fail2Ban {
         Long until = bannedUntil.get(ip);
         if (until == null) return false;
         if (until > System.currentTimeMillis()) return true;
-        bannedUntil.remove(ip);
+        bannedUntil.remove(ip, until);
         return false;
     }
 
@@ -38,11 +38,15 @@ public final class Fail2Ban {
     public void recordFailure(String ip) {
         long now = System.currentTimeMillis();
         ConcurrentLinkedDeque<Long> deque = failures.computeIfAbsent(ip, k -> new ConcurrentLinkedDeque<>());
-        deque.addLast(now);
-        deque.removeIf(t -> now - t > windowMillis);
-        if (deque.size() >= maxFailures) {
-            bannedUntil.put(ip, now + banMillis);
-            deque.clear();
+        synchronized (deque) {
+            deque.addLast(now);
+            while (deque.peekFirst() != null && now - deque.peekFirst() > windowMillis) {
+                deque.removeFirst();
+            }
+            if (deque.size() >= maxFailures) {
+                bannedUntil.put(ip, now + banMillis);
+                deque.clear();
+            }
         }
     }
 
@@ -54,7 +58,15 @@ public final class Fail2Ban {
     public void sweep() {
         long now = System.currentTimeMillis();
         bannedUntil.entrySet().removeIf(e -> e.getValue() <= now);
-        failures.entrySet().removeIf(e -> e.getValue().peekFirst() != null && now - e.getValue().peekFirst() > windowMillis);
+        failures.entrySet().removeIf(entry -> {
+            ConcurrentLinkedDeque<Long> deque = entry.getValue();
+            synchronized (deque) {
+                while (deque.peekFirst() != null && now - deque.peekFirst() > windowMillis) {
+                    deque.removeFirst();
+                }
+                return deque.isEmpty();
+            }
+        });
     }
 
     public int bannedCount() {

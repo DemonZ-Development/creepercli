@@ -62,6 +62,7 @@ class AdminHandlerTest {
     void testUserAddStoresBcryptHash() {
         List<String> out = handler.handle(new String[]{"user", "add", "steve", "correct-horse-battery"});
         assertTrue(out.get(0).contains("added/updated"));
+        verify(plugin).revokeUserSessions("steve", null);
         verify(users).add(eq("steve"), argThat(hash ->
                 hash.startsWith("$2") && BCrypt.verifyer().verify("correct-horse-battery".toCharArray(), hash).verified));
     }
@@ -70,6 +71,7 @@ class AdminHandlerTest {
     void testUserRemove() {
         List<String> out = handler.handle(new String[]{"user", "remove", "steve"});
         assertTrue(out.get(0).contains("removed"));
+        verify(plugin).revokeUserSessions("steve", null);
         verify(users).remove("steve");
     }
 

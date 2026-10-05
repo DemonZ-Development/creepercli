@@ -8,7 +8,10 @@ on:
 
 jobs:
   plugin-test:
-    runs-on: self-hosted
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -19,12 +22,15 @@ jobs:
           java-version: '21'
           distribution: temurin
 
-      - name: Run Maven tests
-        run: mvn -B test
+      - name: Build and verify plugin artifact
+        run: mvn -B clean verify
         working-directory: plugin
 
   cli-test:
-    runs-on: self-hosted
+    strategy:
+      matrix:
+        node: [18, 20, 22]
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -32,7 +38,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: ${{ matrix.node }}
 
       - name: Install dependencies
         run: npm ci
@@ -42,3 +48,10 @@ jobs:
         run: npm test
         working-directory: cli
 
+      - name: Audit runtime dependencies
+        run: npm audit --omit=dev --audit-level=high
+        working-directory: cli
+
+      - name: Verify publish contents
+        run: npm pack --dry-run
+        working-directory: cli

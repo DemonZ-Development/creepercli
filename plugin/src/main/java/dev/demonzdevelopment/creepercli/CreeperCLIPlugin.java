@@ -86,6 +86,7 @@ public final class CreeperCLIPlugin {
             sanitizer = new PathSanitizer(cfg.serverRoot());
         } catch (IOException e) {
             getLogger().severe("Cannot initialize sandbox root: " + e.getMessage());
+            shutdown();
             return false;
         }
         locks = new FileLockManager(cfg);
@@ -104,6 +105,7 @@ public final class CreeperCLIPlugin {
             server.start();
         } catch (IOException e) {
             getLogger().severe("Failed to bind TCP " + cfg.networkHost() + ":" + cfg.networkPort() + " - " + e.getMessage());
+            shutdown();
             return false;
         }
         updateChecker = new UpdateChecker(this, executor);
@@ -133,7 +135,9 @@ public final class CreeperCLIPlugin {
         executor.scheduleAtFixedRate(() -> {
             sessions.sweep();
             fail2ban.sweep();
+            authLimiter.sweep();
             authManager.purgePending();
+            transfers.sweep();
         }, 60, 60, TimeUnit.SECONDS);
         executor.scheduleAtFixedRate(locks::sweep, 30, 30, TimeUnit.SECONDS);
     }
@@ -146,6 +150,18 @@ public final class CreeperCLIPlugin {
             transfers.abortByToken(token);
         }
         logs.unsubscribe(conn);
+    }
+
+    public int revokeUserSessions(String username, String exceptToken) {
+        int revoked = sessions.invalidateUserExcept(username, exceptToken);
+        if (server != null) server.disconnectUserExcept(username, exceptToken);
+        return revoked;
+    }
+
+    public void checkForUpdatesAsync() {
+        if (updateChecker != null && !executor.isShutdown()) {
+            executor.execute(updateChecker::checkForUpdates);
+        }
     }
 
     public void reloadConfigs() {

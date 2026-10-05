@@ -1,6 +1,6 @@
 name: CreeperCLI
-version: 1.0.0
-main: dev.demonzdevelopment.creepercli.CreeperCLIPlugin
+version: 1.1.0
+main: dev.demonzdevelopment.creepercli.platform.bukkit.BukkitLoader
 api-version: '1.21'
 description: Remote administration TCP plugin with a hardened file sandbox
 website: https://github.com/DemonZ-Development/creepercli
@@ -13,4 +13,3 @@ permissions:
   creepercli.admin:
     description: Manage CreeperCLI users and configuration
     default: op
-

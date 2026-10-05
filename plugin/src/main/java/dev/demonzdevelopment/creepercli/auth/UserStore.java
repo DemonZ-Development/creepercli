@@ -13,9 +13,11 @@ import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.PosixFilePermission;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class UserStore {
@@ -83,8 +85,23 @@ public final class UserStore {
             } catch (IOException e) {
                 Files.move(tmp, file, StandardCopyOption.REPLACE_EXISTING);
             }
+            try {
+                restrictPermissions(file);
+            } catch (IOException e) {
+                if (plugin != null) plugin.getLogger().warning("Could not restrict users file permissions: " + e.getMessage());
+            }
         } catch (IOException e) {
             if (plugin != null) plugin.getLogger().severe("Failed to save users file: " + e.getMessage());
+        }
+    }
+
+    private static void restrictPermissions(Path path) throws IOException {
+        try {
+            Files.setPosixFilePermissions(path, Set.of(
+                    PosixFilePermission.OWNER_READ,
+                    PosixFilePermission.OWNER_WRITE));
+        } catch (UnsupportedOperationException ignored) {
+            // Windows ACLs are inherited from the plugin data directory.
         }
     }
 

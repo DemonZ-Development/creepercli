@@ -13,7 +13,7 @@ You get a real terminal into the server. Browse files. Open one in your own edit
 
 ### Install
 
-1. Put `CreeperCLI-1.0.0.jar` in `plugins/` and restart.
+1. Put `CreeperCLI-1.1.0.jar` in `plugins/` and restart.
 2. Create a login: `/creepercli user add <name> <password>`
 3. Install the CLI: `npm install -g creepercli`
 4. Log in: `creepercli login --host <ip> --port 45678`
@@ -128,7 +128,7 @@ creepercli --port 45679 exec list
 
 The port is a door into your server, so it stays locked down. Passwords are bcrypt-hashed, 2FA is optional but available, sessions expire after 15 idle minutes and stay bound to the IP that started them. The plugin throttles failed logins and bans IPs that keep failing. File access is jailed to the server folder, so `..` and symlink tricks can't escape it. Every action lands in an append-only audit log.
 
-By default it binds `0.0.0.0:45678`, which works on hosting panels as-is. If the machine is yours, set `network.host: "127.0.0.1"` and reach it through an SSH tunnel:
+By default it binds `127.0.0.1:45678`. Reach it through an SSH tunnel, VPN, or trusted private network. Use `0.0.0.0` only when access is restricted and encrypted:
 
 ```
 ssh -N -L 45678:127.0.0.1:45678 user@server
@@ -142,7 +142,7 @@ Everything lives in `plugins/CreeperCLI/config.yml`. When you update the plugin,
 
 | Key | What it controls | Default |
 |---|---|---|
-| `network.host` | Bind address | `0.0.0.0` |
+| `network.host` | Bind address | `127.0.0.1` |
 | `network.port` | TCP port | `45678` |
 | `auth.session-timeout-minutes` | Idle session expiry | `15` |
 | `sandbox.server-root` | Folder the sandbox jails to | `.` |

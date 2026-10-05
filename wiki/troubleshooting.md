@@ -8,7 +8,7 @@ The plugin is not listening where you looked.
 
 1. Check the plugin loaded: the console shows `CreeperCLI enabled (config v1). TCP listener on <host>:<port>`.
 2. Check the listener: `ss -tlnp | grep 45678` on the server.
-3. The default bind is `0.0.0.0`, so a refused connection usually means a wrong port, a wrong IP, or a firewall. On your own machine, prefer `network.host: "127.0.0.1"` plus an SSH tunnel (`ssh -N -L 45678:127.0.0.1:45678 user@server`).
+3. The default bind is `127.0.0.1`, so remote connections require an SSH tunnel, VPN, private network, or an explicitly configured and firewall-restricted bind address. Prefer an SSH tunnel (`ssh -N -L 45678:127.0.0.1:45678 user@server`).
 4. `network.port` and `network.host` changes require a restart, not `/creepercli reload`.
 
 ### `Error: Connection closed by server` or `Request timed out (auth.login)`
@@ -117,7 +117,7 @@ Anonymous usage metrics: plugin and server versions, Java, OS, player count, onl
 ## Running the tests
 
 ```bash
-cd plugin && mvn test      # PathSanitizer suite, 53 tests
+cd plugin && mvn -B clean verify
 cd cli && npm test         # CLI tests
 ```
 

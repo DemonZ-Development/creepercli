@@ -24,10 +24,6 @@ function load(host, port) {
     const raw = fs.readFileSync(CREDS_FILE, 'utf8');
     const creds = JSON.parse(raw);
     if (creds.host !== host || creds.port !== port) return null;
-    if (creds.expiresAt && Date.now() > creds.expiresAt) {
-      clear();
-      return null;
-    }
     return creds;
   } catch {
     return null;

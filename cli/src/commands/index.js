@@ -59,12 +59,16 @@ function splitArgs(input) {
   let cur = '';
   let quote = null;
   let escaped = false;
-  for (const ch of input) {
+  for (let i = 0; i < input.length; i++) {
+    const ch = input[i];
     if (escaped) {
       cur += ch;
       escaped = false;
     } else if (ch === '\\') {
-      escaped = true;
+      const next = input[i + 1];
+      const escapable = next != null && (next === '\\' || next === '"' || next === "'" || /\s/.test(next));
+      if (escapable) escaped = true;
+      else cur += ch;
     } else if (quote) {
       if (ch === quote) quote = null;
       else cur += ch;

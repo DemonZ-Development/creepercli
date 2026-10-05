@@ -81,6 +81,16 @@ public final class TcpServer {
         return connections.size();
     }
 
+    public void disconnectUserExcept(String username, String exceptToken) {
+        for (ClientConnection conn : connections) {
+            Session session = conn.session();
+            if (session != null && session.username.equals(username)
+                    && (exceptToken == null || !session.token.equals(exceptToken))) {
+                conn.close();
+            }
+        }
+    }
+
     public void stop() {
         if (serverSocket != null) {
             try {

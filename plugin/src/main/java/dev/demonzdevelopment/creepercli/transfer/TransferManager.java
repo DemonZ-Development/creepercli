@@ -32,6 +32,7 @@ import java.util.stream.Stream;
 
 public final class TransferManager {
     private static final int MAX_LIST_ENTRIES = 100_000;
+    private static final long TRANSFER_IDLE_TIMEOUT_MILLIS = 15 * 60_000L;
 
     private static final class PushState {
         final String token;
@@ -39,15 +40,20 @@ public final class TransferManager {
         final Path temp;
         final FileChannel channel;
         final long expectedSize;
+        final String expectedSha256;
         long received;
+        volatile long lastActivity;
         final MessageDigest digest;
 
-        PushState(String token, Path target, Path temp, FileChannel channel, long expectedSize, MessageDigest digest) {
+        PushState(String token, Path target, Path temp, FileChannel channel, long expectedSize,
+                  String expectedSha256, MessageDigest digest) {
             this.token = token;
             this.target = target;
             this.temp = temp;
             this.channel = channel;
             this.expectedSize = expectedSize;
+            this.expectedSha256 = expectedSha256;
+            this.lastActivity = System.currentTimeMillis();
             this.digest = digest;
         }
     }
@@ -58,6 +64,7 @@ public final class TransferManager {
         final long size;
         final String sha256;
         final FileChannel channel;
+        volatile long lastActivity;
 
         PullState(String token, Path path, long size, String sha256, FileChannel channel) {
             this.token = token;
@@ -65,6 +72,7 @@ public final class TransferManager {
             this.size = size;
             this.sha256 = sha256;
             this.channel = channel;
+            this.lastActivity = System.currentTimeMillis();
         }
     }
 
@@ -85,6 +93,9 @@ public final class TransferManager {
         if (size < 0 || size > plugin.cfg().maxTransferBytes()) {
             throw new CreeperError(Protocol.ERR_PAYLOAD_TOO_LARGE, "File too large (max " + plugin.cfg().maxTransferBytes() + " bytes)");
         }
+        if (sha256 == null || !sha256.matches("(?i)[0-9a-f]{64}")) {
+            throw new CreeperError(Protocol.ERR_INVALID_PARAMS, "sha256 must be a 64-character hexadecimal digest");
+        }
         Path target = conn.resolve(path);
         if (Files.exists(target, LinkOption.NOFOLLOW_LINKS)) {
             if (!force) {
@@ -98,12 +109,12 @@ public final class TransferManager {
         if (!Files.isDirectory(parent, LinkOption.NOFOLLOW_LINKS)) {
             throw new CreeperError(Protocol.ERR_NOT_FOUND, "Remote parent directory does not exist");
         }
-        Path temp = parent.resolve("." + target.getFileName() + ".creepercli-part");
+        Path temp = parent.resolve("." + target.getFileName() + ".creepercli-part-" + UUID.randomUUID());
         try {
             FileChannel channel = FileChannel.open(temp, StandardOpenOption.CREATE,
                     StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
             String id = UUID.randomUUID().toString();
-            PushState state = new PushState(conn.session().token, target, temp, channel, size,
+            PushState state = new PushState(conn.session().token, target, temp, channel, size, sha256,
                     MessageDigest.getInstance("SHA-256"));
             pushes.put(id, state);
             JsonObject res = new JsonObject();
@@ -121,75 +132,83 @@ public final class TransferManager {
         int index = Json.optInt(params, "index", -1);
         String data64 = Json.opt(params, "data", null);
         PushState state = pushState(conn, id);
-        byte[] bytes;
-        try {
-            bytes = Base64.getDecoder().decode(data64 == null ? "" : data64);
-        } catch (IllegalArgumentException e) {
-            throw new CreeperError(Protocol.ERR_BAD_REQUEST, "Invalid base64 chunk");
+        synchronized (state) {
+            byte[] bytes;
+            try {
+                bytes = Base64.getDecoder().decode(data64 == null ? "" : data64);
+            } catch (IllegalArgumentException e) {
+                throw new CreeperError(Protocol.ERR_BAD_REQUEST, "Invalid base64 chunk");
+            }
+            int chunkSize = plugin.cfg().transferChunkSize();
+            if (bytes.length > chunkSize) {
+                abortPush(id);
+                throw new CreeperError(Protocol.ERR_PAYLOAD_TOO_LARGE, "Chunk exceeds chunk size");
+            }
+            if (index < 0 || index * (long) chunkSize != state.received) {
+                abortPush(id);
+                throw new CreeperError(Protocol.ERR_BAD_REQUEST, "Chunk out of order (expected index " + (state.received / chunkSize) + ")");
+            }
+            try {
+                ByteBuffer buffer = ByteBuffer.wrap(bytes);
+                while (buffer.hasRemaining()) state.channel.write(buffer);
+            } catch (IOException e) {
+                abortPush(id);
+                throw new CreeperError(Protocol.ERR_IO, "Upload write failed: " + e.getMessage());
+            }
+            state.digest.update(bytes);
+            state.received += bytes.length;
+            state.lastActivity = System.currentTimeMillis();
+            if (state.received > state.expectedSize) {
+                abortPush(id);
+                throw new CreeperError(Protocol.ERR_PAYLOAD_TOO_LARGE, "Upload exceeds declared size");
+            }
+            JsonObject res = new JsonObject();
+            res.addProperty("received", state.received);
+            return res;
         }
-        int chunkSize = plugin.cfg().transferChunkSize();
-        if (bytes.length > chunkSize) {
-            abortPush(id);
-            throw new CreeperError(Protocol.ERR_PAYLOAD_TOO_LARGE, "Chunk exceeds chunk size");
-        }
-        if (index < 0 || index * (long) chunkSize != state.received) {
-            abortPush(id);
-            throw new CreeperError(Protocol.ERR_BAD_REQUEST, "Chunk out of order (expected index " + (state.received / chunkSize) + ")");
-        }
-        try {
-            state.channel.write(ByteBuffer.wrap(bytes));
-        } catch (IOException e) {
-            abortPush(id);
-            throw new CreeperError(Protocol.ERR_IO, "Upload write failed: " + e.getMessage());
-        }
-        state.digest.update(bytes);
-        state.received += bytes.length;
-        if (state.received > state.expectedSize) {
-            abortPush(id);
-            throw new CreeperError(Protocol.ERR_PAYLOAD_TOO_LARGE, "Upload exceeds declared size");
-        }
-        JsonObject res = new JsonObject();
-        res.addProperty("received", state.received);
-        return res;
     }
 
     public JsonObject pushFinish(ClientConnection conn, JsonObject params) throws CreeperError {
         String id = Json.opt(params, "transferId", null);
         String clientSha = Json.opt(params, "sha256", null);
         PushState state = pushState(conn, id);
-        if (state.received != state.expectedSize) {
-            abortPush(id);
-            throw new CreeperError(Protocol.ERR_PAYLOAD_TOO_LARGE, "Upload size mismatch: expected " + state.expectedSize + ", got " + state.received);
-        }
-        String serverSha;
-        try {
-            state.channel.force(true);
-            state.channel.close();
-            serverSha = java.util.HexFormat.of().formatHex(state.digest.digest());
-        } catch (IOException e) {
-            abortPush(id);
-            throw new CreeperError(Protocol.ERR_IO, "Upload finalize failed: " + e.getMessage());
-        }
-        if (clientSha == null || !serverSha.equalsIgnoreCase(clientSha)) {
-            abortPush(id);
-            throw new CreeperError(Protocol.ERR_CHECKSUM_MISMATCH, "Checksum mismatch: server " + serverSha + ", client " + clientSha);
-        }
-        try {
-            try {
-                Files.move(state.temp, state.target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-            } catch (AtomicMoveNotSupportedException e) {
-                Files.move(state.temp, state.target, StandardCopyOption.REPLACE_EXISTING);
+        synchronized (state) {
+            if (state.received != state.expectedSize) {
+                abortPush(id);
+                throw new CreeperError(Protocol.ERR_PAYLOAD_TOO_LARGE, "Upload size mismatch: expected " + state.expectedSize + ", got " + state.received);
             }
-        } catch (IOException e) {
-            abortPush(id);
-            throw new CreeperError(Protocol.ERR_IO, "Finalize move failed: " + e.getMessage());
+            String serverSha;
+            try {
+                state.channel.force(true);
+                state.channel.close();
+                serverSha = java.util.HexFormat.of().formatHex(state.digest.digest());
+            } catch (IOException e) {
+                abortPush(id);
+                throw new CreeperError(Protocol.ERR_IO, "Upload finalize failed: " + e.getMessage());
+            }
+            if (clientSha == null || !serverSha.equalsIgnoreCase(clientSha)
+                    || !serverSha.equalsIgnoreCase(state.expectedSha256)) {
+                abortPush(id);
+                throw new CreeperError(Protocol.ERR_CHECKSUM_MISMATCH,
+                        "Checksum mismatch: server " + serverSha + ", expected " + state.expectedSha256);
+            }
+            try {
+                try {
+                    Files.move(state.temp, state.target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+                } catch (AtomicMoveNotSupportedException e) {
+                    Files.move(state.temp, state.target, StandardCopyOption.REPLACE_EXISTING);
+                }
+            } catch (IOException e) {
+                abortPush(id);
+                throw new CreeperError(Protocol.ERR_IO, "Finalize move failed: " + e.getMessage());
+            }
+            pushes.remove(id, state);
+            JsonObject res = new JsonObject();
+            res.addProperty("target", conn.jailPath(state.target));
+            res.addProperty("size", state.expectedSize);
+            res.addProperty("sha256", serverSha);
+            return res;
         }
-        pushes.remove(id);
-        JsonObject res = new JsonObject();
-        res.addProperty("target", conn.jailPath(state.target));
-        res.addProperty("size", state.expectedSize);
-        res.addProperty("sha256", serverSha);
-        return res;
     }
 
     public JsonObject pullStart(ClientConnection conn, JsonObject params) throws CreeperError {
@@ -234,28 +253,35 @@ public final class TransferManager {
         String id = Json.opt(params, "transferId", null);
         long index = Json.optLong(params, "index", -1);
         PullState state = pullState(conn, id);
-        int chunkSize = plugin.cfg().transferChunkSize();
-        long pos = index * (long) chunkSize;
-        JsonObject res = new JsonObject();
-        if (pos >= state.size) {
-            res.addProperty("index", index);
-            res.addProperty("data", "");
-            res.addProperty("eof", true);
-            return res;
+        if (index < 0) {
+            throw new CreeperError(Protocol.ERR_INVALID_PARAMS, "index must be non-negative");
         }
-        int len = (int) Math.min(chunkSize, state.size - pos);
-        ByteBuffer buf = ByteBuffer.allocate(len);
-        try {
-            int n = state.channel.read(buf, pos);
-            buf.flip();
-            byte[] data = new byte[n];
-            buf.get(data);
-            res.addProperty("index", index);
-            res.addProperty("data", Base64.getEncoder().encodeToString(data));
-            res.addProperty("eof", pos + n >= state.size);
-            return res;
-        } catch (IOException e) {
-            throw new CreeperError(Protocol.ERR_IO, "Read failed: " + e.getMessage());
+        synchronized (state) {
+            state.lastActivity = System.currentTimeMillis();
+            int chunkSize = plugin.cfg().transferChunkSize();
+            long pos = index * (long) chunkSize;
+            JsonObject res = new JsonObject();
+            if (pos >= state.size) {
+                res.addProperty("index", index);
+                res.addProperty("data", "");
+                res.addProperty("eof", true);
+                return res;
+            }
+            int len = (int) Math.min(chunkSize, state.size - pos);
+            ByteBuffer buf = ByteBuffer.allocate(len);
+            try {
+                int n = state.channel.read(buf, pos);
+                if (n < 0) n = 0;
+                buf.flip();
+                byte[] data = new byte[n];
+                buf.get(data);
+                res.addProperty("index", index);
+                res.addProperty("data", Base64.getEncoder().encodeToString(data));
+                res.addProperty("eof", pos + n >= state.size);
+                return res;
+            } catch (IOException e) {
+                throw new CreeperError(Protocol.ERR_IO, "Read failed: " + e.getMessage());
+            }
         }
     }
 
@@ -263,11 +289,13 @@ public final class TransferManager {
         String id = Json.opt(params, "transferId", null);
         String clientSha = Json.opt(params, "sha256", null);
         PullState state = pullState(conn, id);
-        try {
-            state.channel.close();
-        } catch (IOException ignored) {
+        synchronized (state) {
+            pulls.remove(id, state);
+            try {
+                state.channel.close();
+            } catch (IOException ignored) {
+            }
         }
-        pulls.remove(id);
         boolean ok = clientSha != null && state.sha256.equalsIgnoreCase(clientSha);
         JsonObject res = new JsonObject();
         res.addProperty("ok", ok);
@@ -281,8 +309,10 @@ public final class TransferManager {
     public JsonObject abort(ClientConnection conn, JsonObject params) {
         String id = Json.opt(params, "transferId", null);
         if (id != null) {
-            abortPush(id);
-            abortPull(id);
+            PushState push = pushes.get(id);
+            if (push != null && push.token.equals(conn.session().token)) abortPush(id);
+            PullState pull = pulls.get(id);
+            if (pull != null && pull.token.equals(conn.session().token)) abortPull(id);
         }
         return Json.ok();
     }
@@ -341,6 +371,16 @@ public final class TransferManager {
         for (String id : new java.util.ArrayList<>(pulls.keySet())) abortPull(id);
     }
 
+    public void sweep() {
+        long cutoff = System.currentTimeMillis() - TRANSFER_IDLE_TIMEOUT_MILLIS;
+        for (Map.Entry<String, PushState> entry : pushes.entrySet()) {
+            if (entry.getValue().lastActivity < cutoff) abortPush(entry.getKey());
+        }
+        for (Map.Entry<String, PullState> entry : pulls.entrySet()) {
+            if (entry.getValue().lastActivity < cutoff) abortPull(entry.getKey());
+        }
+    }
+
     private PushState pushState(ClientConnection conn, String id) throws CreeperError {
         if (id == null) throw new CreeperError(Protocol.ERR_NO_TRANSFER, "No transfer id");
         PushState state = pushes.get(id);
@@ -362,22 +402,26 @@ public final class TransferManager {
     private void abortPush(String id) {
         PushState state = pushes.remove(id);
         if (state == null) return;
-        try {
-            state.channel.close();
-        } catch (IOException ignored) {
-        }
-        try {
-            Files.deleteIfExists(state.temp);
-        } catch (IOException ignored) {
+        synchronized (state) {
+            try {
+                state.channel.close();
+            } catch (IOException ignored) {
+            }
+            try {
+                Files.deleteIfExists(state.temp);
+            } catch (IOException ignored) {
+            }
         }
     }
 
     private void abortPull(String id) {
         PullState state = pulls.remove(id);
         if (state == null) return;
-        try {
-            state.channel.close();
-        } catch (IOException ignored) {
+        synchronized (state) {
+            try {
+                state.channel.close();
+            } catch (IOException ignored) {
+            }
         }
     }
 

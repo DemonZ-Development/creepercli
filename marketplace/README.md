@@ -16,5 +16,5 @@ Ready-to-post listings for CreeperCLI. Each file is a full submission package: t
 ## Every listing carries
 
 - The shared feature summary and install steps.
-- A loud security note about the default `0.0.0.0` bind and the SSH tunnel recommendation.
+- A loud security note about the default `127.0.0.1` bind and the SSH tunnel recommendation.
 - The required disclaimer that the creator is not responsible for how the tool is used.

@@ -46,6 +46,7 @@ class TpsTrackerTest {
         tracker.start();
 
         assertTrue(tracker.running(), "sampler should be active on Bukkit-family");
+        assertEquals(50.0, tracker.snapshot().get("tickMs").getAsDouble());
         tracker.stop();
         assertFalse(tracker.running());
     }

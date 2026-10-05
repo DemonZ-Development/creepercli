@@ -4,22 +4,22 @@
 
 | Component | Requirement |
 |---|---|
-| Server | Paper 1.21.x (Java Edition) |
+| Server/proxy | Paper/Spigot 1.21.x, BungeeCord/Waterfall, or Velocity |
 | Java | 21 or newer, the same JVM Paper runs on |
 | Your machine | Node.js 18+ |
 | Network | Your machine can reach the server, directly or through an SSH tunnel |
 
 ## 1. Install the plugin
 
-Download `CreeperCLI-1.0.0.jar` from Modrinth, or build it:
+Download `CreeperCLI-1.1.0.jar` from Modrinth, or build it:
 
 ```bash
 cd plugin
 mvn -B package
-# plugin/target/CreeperCLI-1.0.0.jar
+# plugin/target/CreeperCLI-1.1.0.jar
 ```
 
-Copy the jar into the server's `plugins/` folder and restart. First boot creates `plugins/CreeperCLI/config.yml` and starts the TCP listener on `0.0.0.0:45678` by default. See [configuration.md](configuration.md) for every key.
+Copy the jar into the server or proxy's `plugins/` folder and restart. First boot creates `config.yml` and starts the TCP listener on `127.0.0.1:45678` by default. See [configuration.md](configuration.md) for every key.
 
 ## 2. Create a user
 
@@ -70,11 +70,11 @@ All file paths live in a sandbox rooted at the server directory. `~` and `/` bot
 
 ## 6. Reach the port safely
 
-The plugin binds `0.0.0.0` by default so hosted panels (Pterodactyl, Apex, Bisect, Docker) work without config changes. On a machine you control, lock it down:
+The plugin binds `127.0.0.1` by default. Keep this default and connect through an encrypted tunnel:
 
-1. Set `network.host: "127.0.0.1"` in `plugins/CreeperCLI/config.yml` and restart the server.
-2. Tunnel: `ssh -N -L 45678:127.0.0.1:45678 user@server`
-3. Connect to `127.0.0.1:45678` as usual.
+1. Tunnel: `ssh -N -L 45678:127.0.0.1:45678 user@server`
+2. Connect to `127.0.0.1:45678` as usual.
+3. Use `network.host: "0.0.0.0"` only behind a trusted private network, encrypted tunnel, or VPN.
 
 Run the server as a non-root OS user. See [security.md](security.md) for the full threat model.
 

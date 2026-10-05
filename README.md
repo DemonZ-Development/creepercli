@@ -1,13 +1,13 @@
 # CreeperCLI
 
-Manage your Paper or Spigot Minecraft server from the terminal.
+Manage Paper/Spigot servers and BungeeCord/Waterfall or Velocity proxies from the terminal.
 
 CreeperCLI is a remote administration tool in two parts:
 
 | Component | Location | What it does |
 |---|---|---|
-| **Plugin** (Java 21, Paper 1.21+) | `plugin/` | Runs inside the server. Owns authentication, the file sandbox, allowlisted console commands, monitoring, and live log streaming over a small TCP protocol. |
-| **CLI** (Node.js 18+, no dependencies) | `cli/` | Installs from npm. Gives you an interactive shell, local-editor workflow, verified file transfers, live console stream, and monitoring dashboards. |
+| **Plugin** (Java 21, Paper/Spigot 1.21+, BungeeCord/Waterfall, Velocity) | `plugin/` | Runs inside the server or proxy. Owns authentication, the file sandbox, allowlisted console commands, monitoring, and live log streaming over a small TCP protocol. |
+| **CLI** (Node.js 18+, one runtime dependency) | `cli/` | Installs from npm. Gives you an interactive shell, local-editor workflow, verified file transfers, live console stream, and monitoring dashboards. |
 
 Both parts are required. The plugin does nothing without a client; the CLI is a client for this plugin.
 
@@ -24,7 +24,7 @@ Both parts are required. The plugin does nothing without a client; the CLI is a 
 
 ## Install
 
-1. Drop `CreeperCLI-1.0.0.jar` into the server's `plugins/` folder and restart. First boot creates `plugins/CreeperCLI/config.yml`.
+1. Drop `CreeperCLI-1.1.0.jar` into the server or proxy's `plugins/` folder and restart.
 2. Create a user from the server console: `/creepercli user add steve <strong-password>`.
 3. Install the CLI on your computer: `npm install -g creepercli`.
 4. Connect: `creepercli login --host <server-ip> --port 45678`. The CLI drops you into the interactive shell.
@@ -33,9 +33,9 @@ Full walkthrough: [Getting started](https://demonz-development.github.io/creeper
 
 ## Read the security notes first
 
-The plugin binds `0.0.0.0:45678` by default so hosted panels and containers work out of the box. That means the port is reachable from anywhere that can reach the machine.
+The plugin binds `127.0.0.1:45678` by default because the protocol is not encrypted.
 
-- On a machine you control, set `network.host: "127.0.0.1"` in `plugins/CreeperCLI/config.yml` and reach it through an SSH tunnel: `ssh -N -L 45678:127.0.0.1:45678 user@server`.
+- Reach it through an SSH tunnel: `ssh -N -L 45678:127.0.0.1:45678 user@server`. Use `0.0.0.0` only behind a trusted private network, encrypted tunnel, or VPN.
 - Run the server as a non-root OS user. CreeperCLI is a full admin channel.
 - Enable 2FA with `creepercli totp setup`. The limiter and fail2ban only slow attackers; 2FA stops credential theft.
 
@@ -62,12 +62,12 @@ Ready-to-post listings for Modrinth, SpigotMC, Hangar, CurseForge, npm, and GitH
 
 ## Development
 
-- Plugin: JDK 21 and Maven. `mvn -B package` to build in `plugin/`; `mvn test` for the PathSanitizer suite.
-- CLI: Node.js 18+. `npm install` in `cli/`; `npm test` for tests.
+- Plugin: JDK 21 and Maven. Run `mvn -B clean verify` in `plugin/`.
+- CLI: Node.js 18+. Run `npm ci`, `npm test`, and `npm pack --dry-run` in `cli/`.
 
 ## Releases
 
-SemVer with `v*` tags. The plugin builds and the CLI publishes to npm on tag. v1.0.0 is out on npm as `creepercli`. See [CHANGELOG.md](CHANGELOG.md) and [CONTRIBUTING.md](CONTRIBUTING.md).
+SemVer with `v*` tags. The plugin builds and the CLI publishes to npm on tag. See [CHANGELOG.md](CHANGELOG.md) and [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 

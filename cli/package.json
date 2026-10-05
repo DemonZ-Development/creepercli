@@ -1,7 +1,7 @@
 {
   "name": "creepercli",
-  "version": "1.0.0",
-  "description": "Remote administration CLI for Minecraft (Paper/Spigot) servers running the CreeperCLI plugin",
+  "version": "1.1.0",
+  "description": "Remote administration CLI for Minecraft servers and proxies running CreeperCLI",
   "author": "DemonZDevelopment",
   "license": "Apache-2.0",
   "type": "commonjs",

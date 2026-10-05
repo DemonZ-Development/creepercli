@@ -77,7 +77,7 @@ public final class TpsTracker {
         o.addProperty("tps1m", round(tps(60)));
         o.addProperty("tps5m", round(tps(300)));
         o.addProperty("tps15m", round(tps(900)));
-        o.addProperty("tickMs", round(50.0 / tps(60)));
+        o.addProperty("tickMs", round(1000.0 / tps(60)));
         return o;
     }
 

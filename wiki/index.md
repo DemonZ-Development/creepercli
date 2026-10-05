@@ -1,6 +1,6 @@
 # CreeperCLI wiki
 
-CreeperCLI manages Paper and Spigot Minecraft servers from the terminal. A Java plugin runs on the server; a Node CLI (`creepercli`, installed from npm) runs on your computer. Licensed under the Apache License 2.0.
+CreeperCLI manages Paper/Spigot servers and BungeeCord/Waterfall or Velocity proxies from the terminal. A Java plugin runs on the server or proxy; a Node CLI (`creepercli`, installed from npm) runs on your computer. Licensed under the Apache License 2.0.
 
 ## Pages
 
@@ -32,4 +32,4 @@ You land in the interactive shell. Try `ls /`, `stats`, `exec list`. `q` quits.
 
 ## Security in one line
 
-The plugin binds `0.0.0.0:45678` by default. On a machine you control, set `network.host: "127.0.0.1"` and reach it through an SSH tunnel. Full details on the [security](security.md) page.
+The plugin binds `127.0.0.1:45678` by default. Reach it through an SSH tunnel, VPN, or trusted private network. Full details are on the [security](security.md) page.

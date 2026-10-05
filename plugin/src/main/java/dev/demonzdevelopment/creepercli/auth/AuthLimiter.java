@@ -21,15 +21,32 @@ public final class AuthLimiter {
     public boolean tryAcquire(String ip) {
         long now = System.currentTimeMillis();
         ConcurrentLinkedDeque<Long> deque = attempts.computeIfAbsent(ip, k -> new ConcurrentLinkedDeque<>());
-        deque.removeIf(t -> now - t > windowMillis);
-        if (deque.size() >= maxAttempts) {
-            return false;
+        synchronized (deque) {
+            deque.removeIf(t -> now - t > windowMillis);
+            if (deque.size() >= maxAttempts) {
+                return false;
+            }
+            deque.addLast(now);
+            return true;
         }
-        deque.addLast(now);
-        return true;
     }
 
     public void reset(String ip) {
         attempts.remove(ip);
+    }
+
+    public void sweep() {
+        long now = System.currentTimeMillis();
+        attempts.entrySet().removeIf(entry -> {
+            ConcurrentLinkedDeque<Long> deque = entry.getValue();
+            synchronized (deque) {
+                deque.removeIf(t -> now - t > windowMillis);
+                return deque.isEmpty();
+            }
+        });
+    }
+
+    public int trackedIpCount() {
+        return attempts.size();
     }
 }

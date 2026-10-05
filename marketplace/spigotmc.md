@@ -13,7 +13,7 @@ You get a real terminal into the server. Browse files, open one in your own edit
 
 ### Install
 
-1. Put `CreeperCLI-1.0.0.jar` in `plugins/` and restart.
+1. Put `CreeperCLI-1.1.0.jar` in `plugins/` and restart.
 2. Create a login: `/creepercli user add <name> <password>`
 3. Install the CLI: `npm install -g creepercli`
 4. Log in: `creepercli login --host <ip> --port 45678`
@@ -55,7 +55,7 @@ creepercli repl
 
 The port is a door into your server, so it stays locked down. Passwords are bcrypt-hashed, 2FA is optional but available, sessions expire after 15 idle minutes and stay bound to the IP that started them. The plugin throttles failed logins and bans IPs that keep failing. File access is jailed to the server folder, so `..` and symlink tricks can't escape it. Every action lands in an append-only audit log.
 
-It binds `0.0.0.0:45678` by default. Set `network.host: "127.0.0.1"` and tunnel with SSH:
+It binds `127.0.0.1:45678` by default. Keep that default and tunnel with SSH; use `0.0.0.0` only behind a trusted private network, encrypted tunnel, or VPN:
 
 ```
 ssh -N -L 45678:127.0.0.1:45678 user@server

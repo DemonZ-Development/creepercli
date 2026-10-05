@@ -43,13 +43,14 @@ class PluginConfigTest {
     void testDefaultsLoadFromShippedConfig() {
         PluginConfig cfg = new PluginConfig(plugin);
 
-        assertEquals(1, cfg.configVersion());
-        assertEquals("0.0.0.0", cfg.networkHost());
+        assertEquals(2, cfg.configVersion());
+        assertEquals("127.0.0.1", cfg.networkHost());
         assertEquals(45678, cfg.networkPort());
         assertEquals(16, cfg.maxConnections());
         assertEquals(30, cfg.execTimeoutSeconds());
         assertEquals(List.of("list", "whitelist *", "say *", "restart"), cfg.execAllowlist());
         assertEquals(30.0, cfg.commandsPerSecond());
+        assertEquals(30_000, cfg.handshakeTimeoutMillis());
         assertFalse(cfg.debugLog());
     }
 
@@ -109,6 +110,20 @@ class PluginConfigTest {
 
         assertEquals(dataDir.getParent().getParent().toAbsolutePath().normalize(),
                 cfg.serverRoot());
+    }
+
+    @Test
+    void invalidConfigIsBackedUpBeforeDefaultsAreRestored() throws IOException {
+        replaceConfig("network: [unterminated\nsecret-setting: keep-me\n");
+
+        PluginConfig cfg = new PluginConfig(plugin);
+
+        assertEquals("127.0.0.1", cfg.networkHost());
+        try (var files = Files.list(dataDir)) {
+            Path backup = files.filter(p -> p.getFileName().toString().startsWith("config.yml.invalid-"))
+                    .findFirst().orElseThrow();
+            assertTrue(Files.readString(backup).contains("secret-setting: keep-me"));
+        }
     }
 
     private String readConfig() {

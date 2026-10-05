@@ -44,13 +44,12 @@ public final class BungeeConsoleBridge implements dev.demonzdevelopment.creeperc
                     else dispatched.complete(Boolean.TRUE.equals(ok));
                 });
         
-        CompletableFuture.delayedExecutor(300, TimeUnit.MILLISECONDS).execute(() -> {
-            if (dispatched.isCompletedExceptionally()) {
+        dispatched.whenComplete((ok, err) -> CompletableFuture.delayedExecutor(300, TimeUnit.MILLISECONDS).execute(() -> {
+            if (err != null) {
                 future.completeExceptionally(new CreeperError(Protocol.ERR_INTERNAL,
-                        "Command execution failed"));
+                        "Command execution failed: " + err.getMessage()));
                 return;
             }
-            boolean ok = dispatched.getNow(false);
             long elapsed = (System.nanoTime() - start) / 1_000_000;
             List<String> all = new ArrayList<>(core.logs().since(mark));
             if (fileOffset >= 0) {
@@ -64,8 +63,8 @@ public final class BungeeConsoleBridge implements dev.demonzdevelopment.creeperc
                     core.getLogger().warning("exec log capture failed: " + e.getMessage());
                 }
             }
-            future.complete(new Result(ok, all, elapsed));
-        });
+            future.complete(new Result(Boolean.TRUE.equals(ok), all, elapsed));
+        }));
         CompletableFuture.delayedExecutor(timeoutSeconds, TimeUnit.SECONDS).execute(() -> {
             if (!future.isDone()) {
                 future.completeExceptionally(new CreeperError(Protocol.ERR_TIMEOUT,

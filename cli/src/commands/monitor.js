@@ -30,6 +30,7 @@ async function log(ctx, args) {
   console.log(`Streaming console log (Ctrl+C to stop)${res.grep ? ' filtered by "' + res.grep + '"' : ''}`);
   if (res.buffer && res.buffer.length) console.log(res.buffer.join('\n'));
   let stop = null;
+  let stopped = false;
   try {
     await new Promise((resolve) => {
       const onLine = (event, data) => {
@@ -37,6 +38,8 @@ async function log(ctx, args) {
       };
       ctx.client.on('event', onLine);
       stop = () => {
+        if (stopped) return;
+        stopped = true;
         ctx.client.removeListener('event', onLine);
         ctx.client.request('monitor.log.stop').catch(() => {});
         resolve();

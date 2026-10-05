@@ -234,7 +234,7 @@ class AuthManagerTest {
         Session s = sessionManager.create(username, ip);
         assertNotNull(s);
         assertNotNull(s.token);
-        assertEquals(32, s.token.length());
+        assertEquals(64, s.token.length());
         assertEquals(username, s.username);
         assertEquals(ip, s.ip);
 

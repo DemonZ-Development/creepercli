@@ -54,6 +54,7 @@ public final class AuthManager {
             }
         }
         plugin.fail2ban().clear(ip);
+        plugin.authLimiter().reset(ip);
         Session session = plugin.sessions().create(username, ip);
         plugin.audit().log(ip, username, "auth.login", "success");
         JsonObject res = new JsonObject();
@@ -138,7 +139,7 @@ public final class AuthManager {
             throw new CreeperError(Protocol.ERR_INVALID_PARAMS, "New password must be at least 8 characters");
         }
         plugin.users().setPassword(s.username, BCrypt.withDefaults().hashToString(12, newPassword.toCharArray()));
-        plugin.sessions().invalidateUserExcept(s.username, s.token);
+        plugin.revokeUserSessions(s.username, s.token);
         plugin.audit().log(s.ip, s.username, "auth.passwd", "changed");
         return Json.ok();
     }

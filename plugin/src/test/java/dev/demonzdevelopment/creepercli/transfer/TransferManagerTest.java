@@ -173,7 +173,7 @@ class TransferManagerTest {
         JsonObject startParams = new JsonObject();
         startParams.addProperty("path", "/ooo.bin");
         startParams.addProperty("size", 8);
-        startParams.addProperty("sha256", "ignored");
+        startParams.addProperty("sha256", sha256Hex(new byte[8]));
         JsonObject start = transfers.pushStart(conn, startParams);
         String id = start.get("transferId").getAsString();
 
@@ -195,7 +195,9 @@ class TransferManagerTest {
         JsonObject start = transfers.pushStart(conn, startParams);
         String id = start.get("transferId").getAsString();
         transfers.abort(conn, pushIdParams(id));
-        assertFalse(Files.exists(tempRoot.resolve(".abort.bin.creepercli-part")));
+        try (var files = Files.list(tempRoot)) {
+            assertTrue(files.noneMatch(p -> p.getFileName().toString().contains("creepercli-part")));
+        }
     }
 
     @Test
@@ -217,16 +219,39 @@ class TransferManagerTest {
         JsonObject startParams = new JsonObject();
         startParams.addProperty("path", "/clear.bin");
         startParams.addProperty("size", 8);
-        startParams.addProperty("sha256", "ignored");
+        startParams.addProperty("sha256", sha256Hex(new byte[8]));
         transfers.pushStart(conn, startParams);
         transfers.abortAll();
         
         JsonObject startParams2 = new JsonObject();
         startParams2.addProperty("path", "/clear2.bin");
         startParams2.addProperty("size", 4);
-        startParams2.addProperty("sha256", "ignored");
+        startParams2.addProperty("sha256", sha256Hex(new byte[4]));
         JsonObject start2 = transfers.pushStart(conn, startParams2);
         assertNotNull(start2.get("transferId"));
+    }
+
+    @Test
+    void finishRejectsDigestThatDiffersFromPushStart() throws Exception {
+        byte[] data = "actual".getBytes();
+        JsonObject startParams = new JsonObject();
+        startParams.addProperty("path", "/digest.bin");
+        startParams.addProperty("size", data.length);
+        startParams.addProperty("sha256", sha256Hex("different".getBytes()));
+        String id = transfers.pushStart(conn, startParams).get("transferId").getAsString();
+
+        JsonObject chunk = new JsonObject();
+        chunk.addProperty("transferId", id);
+        chunk.addProperty("index", 0);
+        chunk.addProperty("data", Base64.getEncoder().encodeToString(data));
+        transfers.pushChunk(conn, chunk);
+
+        JsonObject finish = new JsonObject();
+        finish.addProperty("transferId", id);
+        finish.addProperty("sha256", sha256Hex(data));
+        CreeperError err = assertThrows(CreeperError.class, () -> transfers.pushFinish(conn, finish));
+        assertEquals(dev.demonzdevelopment.creepercli.Protocol.ERR_CHECKSUM_MISMATCH, err.code());
+        assertFalse(Files.exists(tempRoot.resolve("digest.bin")));
     }
 
     private static JsonObject pushIdParams(String id) {

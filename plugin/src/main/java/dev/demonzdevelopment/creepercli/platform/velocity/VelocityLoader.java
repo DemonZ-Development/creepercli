@@ -72,6 +72,7 @@ public final class VelocityLoader {
             org.apache.logging.log4j.Logger root = LogManager.getRootLogger();
             if (root instanceof Logger coreLogger) {
                 logBridge = new Log4jBridge(core.logs());
+                logBridge.start();
                 coreLogger.addAppender(logBridge);
             }
         } catch (Throwable t) {
@@ -86,6 +87,7 @@ public final class VelocityLoader {
                 if (root instanceof Logger coreLogger) {
                     coreLogger.removeAppender(logBridge);
                 }
+                logBridge.stop();
             } catch (Throwable ignored) {
             }
             logBridge = null;

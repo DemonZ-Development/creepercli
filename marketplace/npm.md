@@ -10,14 +10,14 @@ The package ships the CLI with one runtime dependency (`qrcode-terminal`), the n
 
 ## Refresh checklist (per release)
 
-1. Bump `version` in `cli/package.json` and run `npm install` to sync the lockfile.
+1. Bump `version` in `cli/package.json` and run `npm install --package-lock-only` to sync the lockfile.
 2. Rebuild the readme from `cli/README.md` (it is copied into the tarball).
 3. Publish: `npm publish` (the workflow on `v*` tags does this automatically).
 4. Verify the tarball: `npm pack` and check it contains `bin/creepercli.js`, `src/`, `README.md`, and `LICENSE`.
 
 ## Description used on npm
 
-The npm readme (see `cli/README.md`) covers: install, login, the REPL, the command table, security notes, and the plugin requirement. It includes the security note about the default `0.0.0.0` bind.
+The npm readme (see `cli/README.md`) covers: install, login, the REPL, the command table, security notes, and the plugin requirement. It includes the security note about the default `127.0.0.1` bind.
 
 ## Disclaimer
 

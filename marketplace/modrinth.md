@@ -1,20 +1,8 @@
-# Modrinth listing
+CreeperCLI lets you manage your Minecraft server from your terminal. Install the plugin on your server and the Node.js CLI on your computer, then connect over TCP.
 
-- URL: https://modrinth.com/project/creepercli
-- Project ID: `fPKEvBZo` (already wired into the plugin's update checker)
-- Summary: `Remote Minecraft admin from your terminal. Files, console, commands.` (72 chars)
-- Loaders: Paper, Spigot
-- Game versions: 1.21.x
-- Categories: server utility, server management
-- License: Apache 2.0
+Browse server files, open a config in your editor, and upload your changes when you're done. You can also transfer files, sync folders, run console commands, and watch the server log. TPS, memory, and disk stats are available from the same terminal.
 
-## Description
-
-CreeperCLI is two things: a plugin and a command-line app. The plugin runs on the server, the CLI runs on your machine, and they talk over TCP. No web panel, nothing to learn in-game.
-
-You get a real terminal into the server. Browse files. Open one in your own editor and push changes back. Push, pull, and sync folders with checksums. Run console commands from your shell. Watch the console stream by, check TPS, keep an eye on memory and disk.
-
-### Install
+## Install
 
 1. Put `CreeperCLI-1.0.0.jar` in `plugins/` and restart.
 2. Create a login: `/creepercli user add <name> <password>`
@@ -23,7 +11,7 @@ You get a real terminal into the server. Browse files. Open one in your own edit
 
 ### Commands
 
-One command at a time, straight from your terminal:
+**Simple CLI commands:**
 
 | Command | What it does |
 |---|---|
@@ -55,7 +43,7 @@ creepercli repl
 > exit
 ```
 
-The REPL keeps history in `~/.creepercli/history`, sticks `cd` between commands, and supports tab completion on paths and command names.
+The REPL saves your command history in `~/.creepercli/history`, remembers your current directory between commands, and supports tab completion for paths and command names.
 
 ### Server-side commands
 
@@ -70,47 +58,26 @@ The REPL keeps history in `~/.creepercli/history`, sticks `cd` between commands,
 
 ### Workflows
 
-Edit a server config from your own editor and push it back under a lock:
+To edit a server config, run `creepercli edit plugins/WorldGuard/config.yml`.
 
-```
-creepercli edit plugins/WorldGuard/config.yml
-# vim opens the file, you make changes, save and quit
-# CreeperCLI shows the diff and uploads the new content
-```
+The file opens in your configured editor. Make your changes, save, and close the editor. CreeperCLI uploads the updated file and reports how many lines changed. It holds an edit lock while you work.
 
-Back up a folder to your home machine:
+To save a copy of a server file on your computer, run `creepercli cpull server.properties ./server.properties.backup`.
 
-```
-creepercli cpush world/ ~/backups/mc-world-$(date +%F) --force
-creepercli cpull crash-reports/ ~/crashes/
-```
+To upload a local file, run `creepercli cpush ./config.yml plugins/WorldGuard/config.yml`.
 
-Sync a config folder, weekly, with the server as the source of truth:
+To sync a server folder with a local folder, run `creepercli csync plugins/WorldGuard ./config-templates`. Sync works in both directions and asks before transferring files. Add `--yes` to skip those prompts.
 
-```
-creepercli csync /etc/mc-configs ./config-templates --yes
-```
+To watch warnings and errors while saving them locally, run `creepercli log --grep 'ERROR|WARN' | tee console.log`.
 
-Stream the console for errors:
-
-```
-creepercli log --grep 'ERROR|WARN' | tee console.log
-```
-
-Cron-friendly one-shots (each command logs in with a saved session token):
-
-```
-0 4 * * * creepercli cpush /world /backups/daily/world.tgz --force >> /var/log/creeper-backup.log 2>&1
-*/5 * * * * creepercli tps | grep -q "1m 1[0-9]" && echo "TPS low: $(creepercli tps)" | mail -s "MC TPS alert" admin@example.com
-```
 
 ### Multi-server
 
 The CLI stores one session per host:port in `~/.creepercli/creds`, so you can hold sessions to several servers at once:
 
 ```
-creepercli login --host 127.0.0.1 --port 45678   # survival
-creepercli login --host 127.0.0.1 --port 45679   # lobby
+creepercli login --host 127.0.0.1 --port 45678
+creepercli login --host 127.0.0.1 --port 45679
 creepercli --port 45679 exec list
 ```
 
@@ -125,19 +92,19 @@ creepercli --port 45679 exec list
 | `E_ALLOWLIST_DENIED` | That console command isn't in `exec.allowlist`. Add it and `/creepercli reload`. |
 | `E_PATH_ESCAPE` | Tried to read or write outside the sandbox. Symlink and `..` escapes get rejected. |
 | `E_LOCKED` | Someone else is editing that file. Wait, or run `unlock`. |
-| `E_CHECKSUM_MISMATCH` | Transfer failed verification. The partial file is removed, retry. |
+| `E_CHECKSUM_MISMATCH` | Transfer failed verification. The partial file is removed; retry. |
 
-### Security
+## Security
 
-The port is a door into your server, so it stays locked down. Passwords are bcrypt-hashed, 2FA is optional but available, sessions expire after 15 idle minutes and stay bound to the IP that started them. The plugin throttles failed logins and bans IPs that keep failing. File access is jailed to the server folder, so `..` and symlink tricks can't escape it. Every action lands in an append-only audit log.
+The TCP port is like a door into your server for the CLI, so it stays locked down. Passwords are bcrypt-hashed, 2FA is optional but available, sessions expire after 15 idle minutes, and they stay bound to the IP that started them. The plugin throttles failed logins and bans IPs that keep failing. File access is jailed to the server folder, so `..` and symlink tricks can't escape it. Every action lands in an append-only audit log.
 
-By default it binds `0.0.0.0:45678`, which works on hosting panels as-is. If the machine is yours, set `network.host: "127.0.0.1"` and reach it through an SSH tunnel:
+By default, it listens on `0.0.0.0:45678`. If you have SSH access to the machine, set `network.host` to `127.0.0.1` and connect through an SSH tunnel:
 
 ```
 ssh -N -L 45678:127.0.0.1:45678 user@server
 ```
 
-Run the server as a non-root OS user. CreeperCLI is a full admin channel: file access and console included.
+Run the server as a non-root OS user. CreeperCLI is a full admin channel: file access and console are included.
 
 ### Settings
 
@@ -148,8 +115,8 @@ Everything lives in `plugins/CreeperCLI/config.yml`. When you update the plugin,
 | `network.host` | Bind address | `0.0.0.0` |
 | `network.port` | TCP port | `45678` |
 | `auth.session-timeout-minutes` | Idle session expiry | `15` |
-| `sandbox.server-root` | Folder the sandbox jails to | `.` |
+| `sandbox.server-root` | Folder the sandbox jails in | `.` |
 | `exec.allowlist` | Console commands the CLI can run | `list`, `whitelist *`, `say *`, `restart` |
 | `limits.commands-per-second` | Per-session rate limit | `30` |
 
-CreeperCLI grants remote, privileged control of a Minecraft server. The creator is not responsible for how you use this tool.
+CreeperCLI gives you remote admin access to a Minecraft server. You're responsible for how you use it; the creator isn't liable for misuse. If you need help setting it up or troubleshooting, ask in our Discord server.

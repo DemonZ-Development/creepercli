@@ -1,12 +1,12 @@
 # CreeperCLI
 
-> Remote administration CLI for Paper and Spigot Minecraft servers.
+> Remote administration CLI for Paper/Spigot servers and BungeeCord/Waterfall or Velocity proxies.
 
 [![npm version](https://img.shields.io/npm/v/creepercli.svg)](https://www.npmjs.com/package/creepercli)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 [![Discord](https://img.shields.io/badge/chat-Discord-5865F2.svg)](https://discord.com/invite/zCkE44hsBR)
 
-`creepercli` is the client half of CreeperCLI. It talks to the CreeperCLI Paper plugin over a TCP socket and gives you a remote shell: sandboxed filesystem access, console commands through an allowlist, live logs, verified transfers, and monitoring.
+`creepercli` is the client half of CreeperCLI. It talks to the CreeperCLI server/proxy plugin over a TCP socket and gives you a remote shell: sandboxed filesystem access, console commands through an allowlist, live logs, verified transfers, and monitoring.
 
 The plugin is required. Install it on the server, then create a user from the server console:
 
@@ -70,7 +70,7 @@ One-shot mode works for scripts: `creepercli ls /plugins`, `creepercli exec list
 - The server-side sandbox blocks `..`, symlink, and absolute-path escapes.
 - Passwords are bcrypt-hashed (cost 12). Sessions expire after 15 idle minutes and bind to your IP.
 - Only allowlisted console commands run (`list`, `say *`, `whitelist *`, `restart` by default).
-- The plugin binds `0.0.0.0` by default so hosted panels work. On a machine you control, set `network.host: "127.0.0.1"` and connect through an SSH tunnel.
+- The plugin binds `127.0.0.1` by default. Connect through an SSH tunnel, VPN, or private network; do not expose the plaintext port directly to the internet.
 
 The full threat model lives in the docs: [demonz-development.github.io/creepercli](https://demonz-development.github.io/creepercli/).
 

@@ -10,7 +10,9 @@ function prompt(ctx) {
   return `${ctx.username || '?'}@${ctx.cfg.host}:${ctx.cwd || '/'}> `;
 }
 
-function startRepl(ctx) {
+function startRepl(ctx, io = {}) {
+  const input = io.input || process.stdin;
+  const output = io.output || process.stdout;
   const completions = COMMANDS.map((c) => c.name);
 
   function completer(line) {
@@ -20,9 +22,9 @@ function startRepl(ctx) {
   }
 
   const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-    terminal: true,
+    input,
+    output,
+    terminal: Boolean(output.isTTY),
     historySize: 1000,
     completer,
   });
@@ -48,7 +50,8 @@ function startRepl(ctx) {
       await runCommand(ctx, line);
       if (ctx.exit) {
         queue.length = 0;
-        break;
+        rl.close();
+        return;
       }
       rl.setPrompt(prompt(ctx));
       rl.prompt();
@@ -83,8 +86,9 @@ function startRepl(ctx) {
   rl.on('close', async () => {
     await ctx.client.flush();
     ctx.client.close();
-    process.exit(0);
   });
+
+  return rl;
 }
 
 module.exports = { startRepl, prompt };

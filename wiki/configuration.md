@@ -5,14 +5,15 @@ The plugin writes a default `plugins/CreeperCLI/config.yml` on first boot. Edit 
 Full default file:
 
 ```yaml
-config-version: 1
+config-version: 2
 
 network:
-  # Host IP interface to bind to ("0.0.0.0" for all interfaces, "127.0.0.1" for SSH tunnel only)
-  host: "0.0.0.0"
+  # Localhost is the secure default; use 0.0.0.0 only behind a tunnel, VPN, or private network
+  host: "127.0.0.1"
   port: 45678
   max-connections: 16
   max-payload-bytes: 10485760
+  handshake-timeout-seconds: 30
 
 auth:
   session-timeout-minutes: 15
@@ -60,10 +61,11 @@ When you upgrade the plugin, missing keys are injected into `config.yml` automat
 
 | Key | Default | Meaning |
 |---|---|---|
-| `host` | `"0.0.0.0"` | Bind address. Binds all interfaces by default so hosted containers (Pterodactyl, Apex, Docker) work out of the box. Use `"127.0.0.1"` and an SSH tunnel on a machine you control. Requires restart. |
+| `host` | `"127.0.0.1"` | Secure bind address. Use `"0.0.0.0"` only behind a tunnel, VPN, or firewall-restricted private network. Requires restart. |
 | `port` | `45678` | TCP port. Requires restart. |
 | `max-connections` | `16` | Hard cap on concurrent TCP connections; extra sockets get one `E_SERVER_FULL` response and close. |
 | `max-payload-bytes` | `10485760` (10 MiB) | Largest single protocol frame accepted, e.g. one transfer chunk or one `fs.cat` reply. Larger frames get `E_PAYLOAD_TOO_LARGE`. |
+| `handshake-timeout-seconds` | `30` | Maximum time an unauthenticated socket may occupy a connection slot. |
 
 ## `auth`
 

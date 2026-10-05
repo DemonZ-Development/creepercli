@@ -13,7 +13,7 @@ Overview of the running service:
 ```text
 CreeperCLI status:
   Config Version: 1
-  Listener: 0.0.0.0:45678
+  Listener: 127.0.0.1:45678
   Connections: 2
   Sessions: 2
   Banned IPs: 0

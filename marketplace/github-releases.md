@@ -22,7 +22,7 @@
 
 ### Assets
 
-- `CreeperCLI-X.Y.Z.jar`: shaded plugin jar for Paper/Spigot 1.21.x, Java 21.
+- `CreeperCLI-X.Y.Z.jar`: shaded plugin jar for Paper/Spigot 1.21.x, BungeeCord/Waterfall, and Velocity on Java 21.
 
 ### Install
 
@@ -31,7 +31,7 @@
 
 ### Security note
 
-The plugin binds `0.0.0.0:45678` by default. On a machine you control, set `network.host: "127.0.0.1"` and connect through an SSH tunnel. See the [security docs](https://demonz-development.github.io/creepercli/security/).
+The plugin binds `127.0.0.1:45678` by default. Connect through an SSH tunnel, VPN, or trusted private network. See the [security docs](https://demonz-development.github.io/creepercli/security/).
 
 ### Disclaimer
 

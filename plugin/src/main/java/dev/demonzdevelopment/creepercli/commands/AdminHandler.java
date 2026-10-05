@@ -90,13 +90,13 @@ public final class AdminHandler {
     }
 
     private void update(List<String> out) {
-        out.add("Checking for updates on Modrinth...");
+        out.add("Update check scheduled on Modrinth.");
         if (plugin.updateChecker() != null) {
-            plugin.updateChecker().checkForUpdates();
+            plugin.checkForUpdatesAsync();
             if (plugin.updateChecker().isUpdateAvailable()) {
                 out.add("Update available: v" + plugin.updateChecker().latestVersion() + " (https://modrinth.com/project/creepercli)");
             } else {
-                out.add("CreeperCLI is up to date (v" + plugin.version() + ")");
+                out.add("Current version: v" + plugin.version() + "; results will be logged when the check completes");
             }
         }
     }
@@ -122,16 +122,19 @@ public final class AdminHandler {
                     out.add("Password must not match the username");
                     return;
                 }
+                int revoked = plugin.revokeUserSessions(name, null);
                 plugin.users().add(name, BCrypt.withDefaults().hashToString(12, password.toCharArray()));
-                out.add("User " + name + " added/updated (bcrypt hashed)");
+                out.add("User " + name + " added/updated (bcrypt hashed; " + revoked + " session(s) revoked)");
             }
             case "remove" -> {
                 if (args.length < 3) {
                     out.add("Usage: /creepercli user remove <name>");
                     return;
                 }
-                plugin.users().remove(args[2]);
-                out.add("User " + args[2] + " removed");
+                String name = args[2];
+                int revoked = plugin.revokeUserSessions(name, null);
+                plugin.users().remove(name);
+                out.add("User " + name + " removed (" + revoked + " session(s) revoked)");
             }
             case "list" -> {
                 for (User u : plugin.users().all()) {

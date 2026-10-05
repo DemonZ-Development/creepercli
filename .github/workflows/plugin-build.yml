@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   build:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,8 +23,11 @@ jobs:
           cache: maven
 
       - name: Build plugin
-        run: mvn -B package
+        run: mvn -B clean verify
         working-directory: plugin
+
+      - name: Verify release version
+        run: test -f "plugin/target/CreeperCLI-${GITHUB_REF_NAME#v}.jar"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -38,4 +41,3 @@ jobs:
         with:
           files: plugin/target/CreeperCLI-*.jar
           generate_release_notes: true
-

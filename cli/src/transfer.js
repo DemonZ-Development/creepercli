@@ -7,6 +7,26 @@ const path = require('path');
 const crypto = require('crypto');
 const { confirm } = require('./prompts');
 
+const MAX_TRANSFER_CHUNK_BYTES = 1024 * 1024;
+
+function validateTransferStart(start, expectFileMetadata = false) {
+  if (!start || typeof start.transferId !== 'string' || !start.transferId) {
+    throw new Error('Server returned an invalid transfer id');
+  }
+  if (!Number.isInteger(start.chunkSize) || start.chunkSize < 1024
+      || start.chunkSize > MAX_TRANSFER_CHUNK_BYTES) {
+    throw new Error('Server returned an invalid transfer chunk size');
+  }
+  if (expectFileMetadata) {
+    if (!Number.isSafeInteger(start.size) || start.size < 0) {
+      throw new Error('Server returned an invalid file size');
+    }
+    if (typeof start.sha256 !== 'string' || !/^[0-9a-f]{64}$/i.test(start.sha256)) {
+      throw new Error('Server returned an invalid file checksum');
+    }
+  }
+}
+
 function sha256File(file) {
   return new Promise((resolve, reject) => {
     const hash = crypto.createHash('sha256');
@@ -44,10 +64,12 @@ async function cpush(ctx, args) {
     force: args.includes('--force'),
   }, { timeoutMs: 60000 });
   const { transferId, chunkSize } = start;
-  const fd = fs.openSync(local, 'r');
+  let fd = null;
   let transferred = 0;
   let index = 0;
   try {
+    validateTransferStart(start);
+    fd = fs.openSync(local, 'r');
     const buf = Buffer.alloc(chunkSize);
     while (true) {
       const n = fs.readSync(fd, buf, 0, chunkSize, transferred);
@@ -61,12 +83,19 @@ async function cpush(ctx, args) {
       index++;
       showProgress(transferred, stat.size);
     }
+    const finish = await ctx.client.request('xfer.push.finish', { transferId, sha256: sha });
+    if (!finish || typeof finish.sha256 !== 'string' || finish.sha256.toLowerCase() !== sha) {
+      throw new Error('Server reported an unexpected upload checksum');
+    }
+    clearProgress();
+    console.log(`Pushed ${local} -> ${finish.target} (${finish.size} bytes, sha256 ${finish.sha256})`);
+  } catch (err) {
+    await ctx.client.request('xfer.abort', { transferId }).catch(() => {});
+    clearProgress();
+    throw err;
   } finally {
-    fs.closeSync(fd);
+    if (fd !== null) fs.closeSync(fd);
   }
-  clearProgress();
-  const finish = await ctx.client.request('xfer.push.finish', { transferId, sha256: sha });
-  console.log(`Pushed ${local} -> ${finish.target} (${finish.size} bytes, sha256 ${finish.sha256})`);
 }
 
 async function cpull(ctx, args) {
@@ -75,33 +104,54 @@ async function cpull(ctx, args) {
   remote = remote.replace(/\\/g, '/');
   const start = await ctx.client.request('xfer.pull.start', { path: remote });
   const { transferId, size, sha256: expectedSha, chunkSize } = start;
-  const part = local + '.creepercli-part';
+  const part = `${local}.creepercli-part-${process.pid}-${Date.now()}`;
   const hash = crypto.createHash('sha256');
-  const fd = fs.openSync(part, 'w');
+  let fd = null;
   let transferred = 0;
   let index = 0;
   try {
+    validateTransferStart(start, true);
+    const parent = path.dirname(path.resolve(local));
+    fs.mkdirSync(parent, { recursive: true, mode: 0o700 });
+    fd = fs.openSync(part, 'w');
     while (true) {
       const res = await ctx.client.request('xfer.pull.chunk', { transferId, index }, { timeoutMs: 120000 });
       const data = Buffer.from(res.data || '', 'base64');
       if (data.length === 0) break;
+      if (data.length > chunkSize || transferred + data.length > size) {
+        throw new Error('Server sent an invalid transfer chunk');
+      }
       fs.writeSync(fd, data, 0, data.length);
       hash.update(data);
       transferred += data.length;
       index++;
       showProgress(transferred, size);
     }
-  } finally {
     fs.closeSync(fd);
+    fd = null;
+    if (transferred !== size) {
+      throw new Error(`Transfer ended early: expected ${size} bytes, received ${transferred}`);
+    }
+    const actual = await ctx.client.request('xfer.pull.finish', { transferId, sha256: hash.digest('hex') });
+    clearProgress();
+    if (!actual || typeof actual.sha256 !== 'string'
+        || actual.sha256.toLowerCase() !== expectedSha.toLowerCase()) {
+      throw new Error('Checksum mismatch: transfer aborted');
+    }
+    replaceFile(part, local);
+    console.log(`Pulled ${remote} -> ${local} (${transferred} bytes, sha256 ${actual.sha256})`);
+  } catch (err) {
+    if (fd !== null) {
+      fs.closeSync(fd);
+      fd = null;
+    }
+    await ctx.client.request('xfer.abort', { transferId }).catch(() => {});
+    try { fs.unlinkSync(part); } catch {}
+    clearProgress();
+    throw err;
+  } finally {
+    if (fd !== null) fs.closeSync(fd);
   }
-  const actual = await ctx.client.request('xfer.pull.finish', { transferId, sha256: hash.digest('hex') });
-  clearProgress();
-  if (actual.sha256 !== expectedSha) {
-    fs.unlinkSync(part);
-    throw new Error('Checksum mismatch: partial file removed, transfer aborted');
-  }
-  fs.renameSync(part, local);
-  console.log(`Pulled ${remote} -> ${local} (${transferred} bytes, sha256 ${actual.sha256})`);
 }
 
 async function csync(ctx, args) {
@@ -111,10 +161,19 @@ async function csync(ctx, args) {
   const yes = args.includes('--yes') || args.includes('-y') || !!(ctx.flags && ctx.flags.yes);
   await ctx.client.request('fs.mkdir', { path: remoteDir, parents: true }).catch(() => {});
 
+  const remoteInfo = await ctx.client.request('fs.info', { path: remoteDir });
+  if (!remoteInfo.isDir || typeof remoteInfo.path !== 'string' || !remoteInfo.path.startsWith('/')) {
+    throw new Error('Server returned an invalid sync directory');
+  }
+  remoteDir = remoteInfo.path;
+
   const remote = await ctx.client.request('xfer.list', { path: remoteDir }, { timeoutMs: 600000 });
   const remoteMap = new Map();
   for (const e of remote.entries) {
-    if (!e.isDir) remoteMap.set(e.path.replace(/^\//, ''), e);
+    if (!e.isDir) {
+      const rel = relativeRemotePath(remoteDir, e.path);
+      if (rel) remoteMap.set(rel, e);
+    }
   }
   if (remote.truncated) console.error('(remote listing truncated)');
 
@@ -174,6 +233,33 @@ function joinRemote(base, rel) {
   return (cleanBase.endsWith('/') ? cleanBase : cleanBase + '/') + cleanRel;
 }
 
+function relativeRemotePath(base, absolutePath) {
+  const cleanBase = ('/' + base.replace(/\\/g, '/').replace(/^\/+|\/+$/g, '')).replace(/^\/$/, '');
+  const cleanPath = '/' + absolutePath.replace(/\\/g, '/').replace(/^\/+/, '');
+  if (!cleanBase) return cleanPath.replace(/^\//, '');
+  if (cleanPath === cleanBase) return '';
+  if (!cleanPath.startsWith(cleanBase + '/')) {
+    throw new Error(`Server returned path outside sync root: ${absolutePath}`);
+  }
+  return cleanPath.slice(cleanBase.length + 1);
+}
+
+function replaceFile(part, destination) {
+  if (!fs.existsSync(destination)) {
+    fs.renameSync(part, destination);
+    return;
+  }
+  const backup = `${destination}.creepercli-backup-${process.pid}-${Date.now()}`;
+  fs.renameSync(destination, backup);
+  try {
+    fs.renameSync(part, destination);
+  } catch (err) {
+    try { fs.renameSync(backup, destination); } catch {}
+    throw err;
+  }
+  try { fs.rmSync(backup, { force: true }); } catch {}
+}
+
 function walkLocal(dir) {
   const map = new Map();
   function walk(d, prefix) {
@@ -187,11 +273,12 @@ function walkLocal(dir) {
       const p = path.join(d, name);
       let st;
       try {
-        st = fs.statSync(p);
+        st = fs.lstatSync(p);
       } catch {
         continue;
       }
       const rel = ((prefix ? prefix + '/' : '') + name).replace(/\\/g, '/');
+      if (st.isSymbolicLink()) continue;
       if (st.isDirectory()) walk(p, rel);
       else if (st.isFile()) map.set(rel, { size: st.size, mtime: Math.floor(st.mtimeMs) });
     }
@@ -200,4 +287,6 @@ function walkLocal(dir) {
   return map;
 }
 
-module.exports = { cpush, cpull, csync, joinRemote, walkLocal };
+module.exports = {
+  cpush, cpull, csync, joinRemote, relativeRemotePath, replaceFile, walkLocal, validateTransferStart,
+};

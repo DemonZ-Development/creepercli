@@ -13,13 +13,14 @@ import java.io.Writer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 public final class PluginConfig {
-    public static final int CURRENT_CONFIG_VERSION = 1;
+    public static final int CURRENT_CONFIG_VERSION = 2;
 
     private final CreeperCLIPlugin plugin;
     private final Path file;
@@ -60,13 +61,39 @@ public final class PluginConfig {
         }
     }
 
-    private static Map<String, Object> loadFile(Path path) {
+    private Map<String, Object> loadFile(Path path) {
         try (InputStream in = Files.newInputStream(path)) {
             Object loaded = new Yaml(new SafeConstructor(new LoaderOptions())).load(in);
             if (loaded instanceof Map<?, ?> m) {
                 return asStringKeyed(m);
             }
+            throw new YAMLException("Configuration root must be a YAML map");
         } catch (IOException | YAMLException e) {
+            if (plugin != null) {
+                plugin.getLogger().severe("Invalid config.yml: " + e.getMessage());
+                return restoreDefaultAfterInvalid(path);
+            }
+        }
+        return new LinkedHashMap<>();
+    }
+
+    private Map<String, Object> restoreDefaultAfterInvalid(Path path) {
+        String suffix = ".invalid-" + Instant.now().toEpochMilli();
+        Path backup = path.resolveSibling(path.getFileName() + suffix);
+        try {
+            Files.copy(path, backup, StandardCopyOption.COPY_ATTRIBUTES);
+            try (InputStream in = PluginConfig.class.getResourceAsStream("/config.yml")) {
+                if (in == null) throw new IOException("Bundled default config.yml is missing");
+                Files.copy(in, path, StandardCopyOption.REPLACE_EXISTING);
+            }
+            plugin.getLogger().warning("Backed up invalid configuration to " + backup.getFileName()
+                    + " and restored safe defaults");
+            try (InputStream in = Files.newInputStream(path)) {
+                Object loaded = new Yaml(new SafeConstructor(new LoaderOptions())).load(in);
+                if (loaded instanceof Map<?, ?> map) return asStringKeyed(map);
+            }
+        } catch (IOException | YAMLException restoreError) {
+            plugin.getLogger().severe("Could not back up and restore config.yml: " + restoreError.getMessage());
         }
         return new LinkedHashMap<>();
     }
@@ -82,7 +109,8 @@ public final class PluginConfig {
         if (version < CURRENT_CONFIG_VERSION) {
             set("config-version", CURRENT_CONFIG_VERSION);
             if (!contains("monitor.debug-log")) set("monitor.debug-log", false);
-            if (!contains("sandbox.server-root")) set("sandbox.server-root", ".");
+            if (!contains("sandbox.server-root")) set("sandbox.server-root", "");
+            if (!contains("network.handshake-timeout-seconds")) set("network.handshake-timeout-seconds", 30);
             save();
             if (plugin != null) plugin.getLogger().info("Configuration auto-migrated to version " + CURRENT_CONFIG_VERSION);
         }
@@ -149,7 +177,7 @@ public final class PluginConfig {
     }
 
     public String networkHost() {
-        return getString("network.host", "0.0.0.0");
+        return getString("network.host", "127.0.0.1");
     }
 
     public int networkPort() {
@@ -162,6 +190,11 @@ public final class PluginConfig {
 
     public int maxPayloadBytes() {
         return getInt("network.max-payload-bytes", 10 * 1024 * 1024);
+    }
+
+    public int handshakeTimeoutMillis() {
+        long seconds = Math.max(5, getInt("network.handshake-timeout-seconds", 30));
+        return (int) Math.min(Integer.MAX_VALUE, seconds * 1000L);
     }
 
     public int sessionTimeoutMillis() {

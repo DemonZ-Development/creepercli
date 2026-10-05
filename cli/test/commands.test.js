@@ -30,6 +30,11 @@ test('splitArgs', async (t) => {
     assert.deepEqual(splitArgs("echo 'it\\'s fine'"), ['echo', "it's fine"]);
     assert.deepEqual(splitArgs('say \\"hello\\"'), ['say', '"hello"']);
   });
+
+  await t.test('preserves Windows path separators', () => {
+    assert.deepEqual(splitArgs('cpush C:\\servers\\world\\level.dat /world/level.dat'),
+      ['cpush', 'C:\\servers\\world\\level.dat', '/world/level.dat']);
+  });
 });
 
 test('command lookup find(cmdName)', async (t) => {

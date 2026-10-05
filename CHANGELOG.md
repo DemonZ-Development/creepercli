@@ -2,6 +2,38 @@
 
 All notable changes. Follows [Semantic Versioning](https://semver.org/).
 
+## [1.1.0] - Unreleased
+
+### Added
+
+- BungeeCord/Waterfall and Velocity support.
+- Authentication deadlines and bounded outbound queues.
+- Expanded regression coverage for authentication, transfers,
+  sync paths, plugin loading, monitoring, and filesystem operations.
+
+### Changed
+
+- Plugin now requires Java 21 and targets Paper/Spigot 1.21+.
+- New configurations bind to `127.0.0.1` by default.
+- Removing or replacing accounts revokes their live sessions.
+  Password changes revoke other sessions.
+- Release workflows verify builds, package versions, tests,
+  and CLI package contents before publishing.
+
+### Fixed
+
+- Incorrect Paper/Spigot plugin entry point.
+- `csync` handling of `.`, `..`, `~`, and relative paths after `cd`.
+- Missing local parent directories during downloads.
+- Slow partial requests bypassing the authentication deadline.
+- `exit`, `quit`, and `q` leaving the REPL running.
+- CLI updater querying the wrong npm package.
+- Upload temporary-file collisions, checksum validation,
+  unauthorized transfer aborts, and abandoned transfers.
+- Authentication limiter cleanup and successful-login throttling.
+- Tick-time calculations and trailing-newline handling in `tail`.
+- Invalid configuration recovery now backs up the original file.
+
 ## [1.0.0] - 2026-08-01
 
 Initial release.

@@ -5,7 +5,7 @@ CreeperCLI assumes the TCP port may be reachable by strangers: LAN exposure, a m
 ## Before you deploy
 
 1. **Run the server as a non-root OS user.** CreeperCLI is a full admin channel: file access, console commands, restart. Compromise of it is compromise of the host.
-2. **Decide how the port is reached.** The default bind is `0.0.0.0:45678`, chosen so hosted panels work out of the box. On a machine you control, set `network.host: "127.0.0.1"` in `config.yml`, restart, and reach the server through an SSH tunnel. Do not open the port to the public internet.
+2. **Decide how the port is reached.** The default bind is `127.0.0.1:45678`. Reach it through an SSH tunnel, VPN, or private network. Set `network.host: "0.0.0.0"` only when access is restricted and encrypted. Do not open the port to the public internet.
 3. **Enable 2FA** with `creepercli totp setup` for every admin account.
 4. **Watch the audit log** (`plugins/CreeperCLI/creepercli-audit.log`) and the Banned IPs counter in `/creepercli status`.
 
@@ -13,7 +13,7 @@ CreeperCLI assumes the TCP port may be reachable by strangers: LAN exposure, a m
 
 | Threat | Mitigation |
 |---|---|
-| Password sniffing on the wire | Passwords never travel after login; sessions use 128-bit tokens. Transport is not encrypted yet: tunnel with SSH, or wait for TLS in a future release. |
+| Password sniffing on the wire | Passwords never travel after login; sessions use 256-bit tokens. Transport is not encrypted yet: tunnel with SSH, or wait for TLS in a future release. |
 | Brute force / credential stuffing | bcrypt cost 12 (about 0.3 s per verify), per-IP login limiter, fail2ban |
 | Token theft / reuse | 15-minute inactivity timeout, token bound to the login IP, `logout` invalidates, `passwd` invalidates other sessions |
 | Reading files outside the server | Sandbox jail: `..`, symlink, and absolute-path escapes blocked (`E_PATH_ESCAPE`) |
@@ -31,7 +31,7 @@ CreeperCLI assumes the TCP port may be reachable by strangers: LAN exposure, a m
 
 ## Sessions
 
-- 128-bit tokens, held in memory only (`SessionManager`).
+- 256-bit tokens, held in memory only (`SessionManager`).
 - Bound to the login IP. Presenting a token from a different IP ends the session.
 - 15-minute inactivity timeout; a sweeper runs every minute.
 - `auth.resume` revalidates the token on every CLI run, so scripts skip the password.
@@ -46,10 +46,11 @@ CreeperCLI assumes the TCP port may be reachable by strangers: LAN exposure, a m
 
 ## Network
 
-- Default bind `0.0.0.0:45678`. On a machine you control, set `network.host` to `127.0.0.1` and tunnel. Changing host or port requires a restart.
+- Default bind `127.0.0.1:45678`. Changing host or port requires a restart.
 - `max-connections` (16): extra sockets get `E_SERVER_FULL` and close.
+- `handshake-timeout-seconds` (30): idle unauthenticated sockets are closed so they cannot hold every connection slot indefinitely.
 - `max-payload-bytes` (10 MiB): oversized frames are rejected before processing.
-- Every response carries `v: 1`; unknown frames are ignored.
+- Every request and response carries `v: 1`; incompatible versions and non-request client frames are rejected.
 
 ## File sandbox
 
