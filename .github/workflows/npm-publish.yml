@@ -37,7 +37,28 @@ jobs:
           npm audit --omit=dev --audit-level=high
           npm pack --dry-run
 
+      - name: Check published version
+        id: published
+        working-directory: cli
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const { name, version } = require('./package.json');
+          (async () => {
+            const url = `https://registry.npmjs.org/${encodeURIComponent(name)}/${encodeURIComponent(version)}`;
+            const response = await fetch(url, { signal: AbortSignal.timeout(15000) });
+            if (response.status !== 200 && response.status !== 404) {
+              throw new Error(`npm version check failed: HTTP ${response.status}`);
+            }
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `exists=${response.status === 200}\n`);
+          })().catch(error => {
+            console.error(error.message);
+            process.exitCode = 1;
+          });
+          NODE
+
       - name: Publish to npm
+        if: steps.published.outputs.exists != 'true'
         run: npm publish --provenance --access public
         working-directory: cli
         env:

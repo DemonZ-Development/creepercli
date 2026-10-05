@@ -25,6 +25,7 @@ class PathSanitizerTest {
 
     @BeforeEach
     void setUp() throws IOException {
+        tempRoot = tempRoot.toRealPath();
         sanitizer = new PathSanitizer(tempRoot);
     }
 
